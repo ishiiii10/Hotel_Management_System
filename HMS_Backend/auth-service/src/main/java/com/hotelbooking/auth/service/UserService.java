@@ -1,11 +1,16 @@
 package com.hotelbooking.auth.service;
 
+import java.time.LocalDateTime;
 import java.util.List;
+import java.util.UUID;
 
 import org.springframework.stereotype.Service;
 
+import com.hotelbooking.auth.domain.ActivationToken;
 import com.hotelbooking.auth.domain.Role;
 import com.hotelbooking.auth.domain.User;
+import com.hotelbooking.auth.domain.UserHotelAssignment;
+import com.hotelbooking.auth.repository.ActivationTokenRepository;
 import com.hotelbooking.auth.repository.UserHotelAssignmentRepository;
 import com.hotelbooking.auth.repository.UserRepository;
 
@@ -18,6 +23,7 @@ public class UserService {
 
     private final UserRepository userRepository;
     private final UserHotelAssignmentRepository userHotelAssignmentRepository;
+    private final ActivationTokenRepository activationTokenRepository;
 
     /**
      * Self-registration for guests
@@ -46,8 +52,9 @@ public class UserService {
         }
     }
     
+   
     @Transactional
-    public User createStaffUser(
+    public String createStaffUser(
             User user,
             List<Long> hotelIds
     ) {
@@ -58,10 +65,9 @@ public class UserService {
 
         ensureEmailNotExists(user.getEmail());
 
-        user.setEnabled(false); // 🔐 important
+        user.setEnabled(false);
         User savedUser = userRepository.save(user);
 
-        // Assign hotels
         hotelIds.forEach(hotelId -> {
             UserHotelAssignment assignment = UserHotelAssignment.builder()
                     .userId(savedUser.getId())
@@ -70,6 +76,21 @@ public class UserService {
             userHotelAssignmentRepository.save(assignment);
         });
 
-        return savedUser;
+        return generateActivationToken(savedUser.getId());
+    }
+    public String generateActivationToken(Long userId) {
+
+        String token = UUID.randomUUID().toString().replace("-", "");
+
+        ActivationToken activationToken = ActivationToken.builder()
+                .token(token)
+                .userId(userId)
+                .expiresAt(LocalDateTime.now().plusHours(24))
+                .used(false)
+                .build();
+
+        activationTokenRepository.save(activationToken);
+
+        return token;
     }
 }
