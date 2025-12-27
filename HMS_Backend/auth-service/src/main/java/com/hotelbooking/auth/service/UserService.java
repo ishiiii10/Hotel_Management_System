@@ -1,11 +1,15 @@
 package com.hotelbooking.auth.service;
 
+import java.util.List;
+
 import org.springframework.stereotype.Service;
 
 import com.hotelbooking.auth.domain.Role;
 import com.hotelbooking.auth.domain.User;
+import com.hotelbooking.auth.repository.UserHotelAssignmentRepository;
 import com.hotelbooking.auth.repository.UserRepository;
 
+import jakarta.transaction.Transactional;
 import lombok.RequiredArgsConstructor;
 
 @Service
@@ -13,6 +17,7 @@ import lombok.RequiredArgsConstructor;
 public class UserService {
 
     private final UserRepository userRepository;
+    private final UserHotelAssignmentRepository userHotelAssignmentRepository;
 
     /**
      * Self-registration for guests
@@ -39,5 +44,32 @@ public class UserService {
         if (userRepository.findByEmail(email).isPresent()) {
             throw new IllegalStateException("Email already exists");
         }
+    }
+    
+    @Transactional
+    public User createStaffUser(
+            User user,
+            List<Long> hotelIds
+    ) {
+
+        if (user.getRole() != Role.MANAGER && user.getRole() != Role.RECEPTIONIST) {
+            throw new IllegalArgumentException("Only MANAGER or RECEPTIONIST can be created via this flow");
+        }
+
+        ensureEmailNotExists(user.getEmail());
+
+        user.setEnabled(false); // 🔐 important
+        User savedUser = userRepository.save(user);
+
+        // Assign hotels
+        hotelIds.forEach(hotelId -> {
+            UserHotelAssignment assignment = UserHotelAssignment.builder()
+                    .userId(savedUser.getId())
+                    .hotelId(hotelId)
+                    .build();
+            userHotelAssignmentRepository.save(assignment);
+        });
+
+        return savedUser;
     }
 }
