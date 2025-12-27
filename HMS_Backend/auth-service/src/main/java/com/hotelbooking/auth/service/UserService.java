@@ -93,4 +93,34 @@ public class UserService {
 
         return token;
     }
+    
+    @Transactional
+    public void activateUser(String token) {
+
+        ActivationToken activationToken = activationTokenRepository.findByToken(token)
+                .orElseThrow(() -> new IllegalArgumentException("Invalid activation token"));
+
+        if (activationToken.isUsed()) {
+            throw new IllegalStateException("Activation token already used");
+        }
+
+        if (activationToken.getExpiresAt().isBefore(LocalDateTime.now())) {
+            throw new IllegalStateException("Activation token has expired");
+        }
+
+        User user = userRepository.findById(activationToken.getUserId())
+                .orElseThrow(() -> new IllegalStateException("User not found for token"));
+
+        if (user.isEnabled()) {
+            throw new IllegalStateException("User is already activated");
+        }
+
+        // Activate user
+        user.setEnabled(true);
+        userRepository.save(user);
+
+        // Invalidate token
+        activationToken.setUsed(true);
+        activationTokenRepository.save(activationToken);
+    }
 }
