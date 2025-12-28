@@ -72,7 +72,6 @@ public class UserService {
         
         user.setPassword(passwordEncoder.encode(user.getPassword()));
         user.setEnabled(false);
-        
         User savedUser = userRepository.save(user);
 
         hotelIds.forEach(hotelId -> {

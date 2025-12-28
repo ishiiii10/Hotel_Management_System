@@ -15,6 +15,7 @@ import com.hotelbooking.auth.dto.GuestRegisterRequest;
 import com.hotelbooking.auth.dto.LoginRequest;
 import com.hotelbooking.auth.dto.LoginResponse;
 import com.hotelbooking.auth.dto.UserResponse;
+import com.hotelbooking.auth.security.JwtUtil;
 import com.hotelbooking.auth.service.UserService;
 
 import jakarta.validation.Valid;
@@ -30,6 +31,7 @@ import lombok.Setter;
 public class AuthController {
 
     private final UserService userService;
+    private final JwtUtil jwtUtil;
 
     @PostMapping("/register")
     public ResponseEntity<UserResponse> registerGuest(
@@ -63,9 +65,11 @@ public class AuthController {
                 request.getEmail(),
                 request.getPassword()
         );
+        
+        String token = jwtUtil.generateToken(user);
 
         LoginResponse response = new LoginResponse(
-                user.getId(),
+                token,
                 user.getEmail(),
                 user.getRole()
         );
