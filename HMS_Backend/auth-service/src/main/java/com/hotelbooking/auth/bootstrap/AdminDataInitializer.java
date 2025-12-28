@@ -1,6 +1,7 @@
 package com.hotelbooking.auth.bootstrap;
 
 import org.springframework.boot.CommandLineRunner;
+import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Component;
 
 import com.hotelbooking.auth.config.AdminUserProperties;
@@ -16,6 +17,7 @@ public class AdminDataInitializer implements CommandLineRunner {
 
     private final UserRepository userRepository;
     private final AdminUserProperties adminProps;
+    private final PasswordEncoder passwordEncoder;
 
     @Override
     public void run(String... args) {
@@ -24,7 +26,7 @@ public class AdminDataInitializer implements CommandLineRunner {
 
             User admin = User.builder()
                     .email(adminProps.getEmail())
-                    .password(adminProps.getPassword()) // hash in service if possible
+                    .password(passwordEncoder.encode(adminProps.getPassword())) // hash in service if possible
                     .fullName(adminProps.getFullName())
                     .role(Role.ADMIN)
                     .enabled(true)

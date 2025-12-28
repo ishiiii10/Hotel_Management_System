@@ -4,6 +4,7 @@ import java.time.LocalDateTime;
 import java.util.List;
 import java.util.UUID;
 
+import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 
 import com.hotelbooking.auth.domain.ActivationToken;
@@ -24,6 +25,7 @@ public class UserService {
     private final UserRepository userRepository;
     private final UserHotelAssignmentRepository userHotelAssignmentRepository;
     private final ActivationTokenRepository activationTokenRepository;
+    private final PasswordEncoder passwordEncoder;
 
     /**
      * Self-registration for guests
@@ -35,6 +37,7 @@ public class UserService {
 
         ensureEmailNotExists(user.getEmail());
 
+        user.setPassword(passwordEncoder.encode(user.getPassword()));
         return userRepository.save(user);
     }
 
@@ -43,6 +46,7 @@ public class UserService {
      */
     public User createUserByAdmin(User user) {
         ensureEmailNotExists(user.getEmail());
+        user.setPassword(passwordEncoder.encode(user.getPassword()));
         return userRepository.save(user);
     }
 
@@ -123,4 +127,20 @@ public class UserService {
         activationToken.setUsed(true);
         activationTokenRepository.save(activationToken);
     }
+    
+    public User authenticate(String email, String rawPassword) {
+
+        User user = userRepository.findByEmail(email)
+                .orElseThrow(() -> new IllegalArgumentException("Invalid credentials"));
+
+        if (!user.isEnabled()) {
+            throw new IllegalStateException("Account is not activated");
+        }
+
+        if (!passwordEncoder.matches(rawPassword, user.getPassword())) {
+            throw new IllegalArgumentException("Invalid credentials");
+        }
+
+        return user;
+    }    
 }
