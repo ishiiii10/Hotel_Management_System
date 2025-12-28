@@ -38,6 +38,7 @@ public class UserService {
         ensureEmailNotExists(user.getEmail());
 
         user.setPassword(passwordEncoder.encode(user.getPassword()));
+        user.setEnabled(true);
         return userRepository.save(user);
     }
 
@@ -68,8 +69,10 @@ public class UserService {
         }
 
         ensureEmailNotExists(user.getEmail());
-
+        
+        user.setPassword(passwordEncoder.encode(user.getPassword()));
         user.setEnabled(false);
+        
         User savedUser = userRepository.save(user);
 
         hotelIds.forEach(hotelId -> {

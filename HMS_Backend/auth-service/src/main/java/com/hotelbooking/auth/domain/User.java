@@ -7,6 +7,7 @@ import jakarta.persistence.Enumerated;
 import jakarta.persistence.GeneratedValue;
 import jakarta.persistence.GenerationType;
 import jakarta.persistence.Id;
+import jakarta.persistence.PrePersist;
 import jakarta.persistence.Table;
 import jakarta.persistence.UniqueConstraint;
 import jakarta.validation.constraints.Email;
@@ -60,5 +61,12 @@ public class User {
     private Role role;
 
     @Column(nullable = false)
-    private boolean enabled = true;
+    private boolean enabled = false;
+    
+    @PrePersist
+    void onCreate() {
+        if (this.role == Role.GUEST) {
+            this.enabled = true;
+        }
+    }
 }
