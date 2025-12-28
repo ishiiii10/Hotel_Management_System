@@ -1,5 +1,8 @@
 package com.hotelbooking.hotel.repository;
 
-public class HotelBranchRepository {
+import org.springframework.data.jpa.repository.JpaRepository;
 
+import com.hotelbooking.hotel.domain.HotelBranch;
+
+public interface HotelBranchRepository extends JpaRepository<HotelBranch, Long> {
 }
