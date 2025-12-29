@@ -1,0 +1,15 @@
+package com.hotelbooking.auth.domain;
+
+public enum AuthErrorCode {
+
+    INVALID_CREDENTIALS,
+    ACCOUNT_DISABLED,
+    PASSWORD_EXPIRED,
+    INVALID_CURRENT_PASSWORD,
+    WEAK_PASSWORD,
+    ACCESS_DENIED,
+    USER_NOT_FOUND,
+    EMAIL_ALREADY_EXISTS,
+    VALIDATION_ERROR,
+    INTERNAL_ERROR
+}

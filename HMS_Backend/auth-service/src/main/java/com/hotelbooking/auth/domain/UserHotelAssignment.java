@@ -6,6 +6,8 @@ import jakarta.persistence.GeneratedValue;
 import jakarta.persistence.GenerationType;
 import jakarta.persistence.Id;
 import jakarta.persistence.Table;
+import jakarta.persistence.UniqueConstraint;
+
 import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Getter;
@@ -13,7 +15,12 @@ import lombok.NoArgsConstructor;
 import lombok.Setter;
 
 @Entity
-@Table(name = "user_hotel_assignments")
+@Table(
+    name = "user_hotel_assignments",
+    uniqueConstraints = {
+        @UniqueConstraint(columnNames = "userId")
+    }
+)
 @Getter
 @Setter
 @NoArgsConstructor
@@ -25,7 +32,7 @@ public class UserHotelAssignment {
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
 
-    @Column(nullable = false)
+    @Column(nullable = false, updatable = false)
     private Long userId;
 
     @Column(nullable = false)
