@@ -11,6 +11,7 @@ import com.hotelbooking.auth.domain.ActivationToken;
 import com.hotelbooking.auth.domain.Role;
 import com.hotelbooking.auth.domain.User;
 import com.hotelbooking.auth.domain.UserHotelAssignment;
+import com.hotelbooking.auth.dto.UserResponse;
 import com.hotelbooking.auth.repository.ActivationTokenRepository;
 import com.hotelbooking.auth.repository.UserHotelAssignmentRepository;
 import com.hotelbooking.auth.repository.UserRepository;
@@ -26,80 +27,51 @@ public class UserService {
     private final UserHotelAssignmentRepository userHotelAssignmentRepository;
     private final ActivationTokenRepository activationTokenRepository;
     private final PasswordEncoder passwordEncoder;
+    private static final int PASSWORD_EXPIRY_DAYS = 90;
 
-    /**
-     * Self-registration for guests
-     */
+    private static final String STRONG_PASSWORD_REGEX =
+            "^(?=.*[a-z])(?=.*[A-Z])(?=.*\\d)(?=.*[@$!%*?&]).+$";
+
+    /* ---------------- Guest Registration ---------------- */
+
     public User registerGuest(User user) {
         if (user.getRole() != Role.GUEST) {
             throw new IllegalArgumentException("Only GUEST users can self-register");
         }
 
         ensureEmailNotExists(user.getEmail());
-
         user.setPassword(passwordEncoder.encode(user.getPassword()));
         user.setEnabled(true);
         return userRepository.save(user);
     }
 
-    /**
-     * Admin creates any type of user
-     */
-    public User createUserByAdmin(User user) {
-        ensureEmailNotExists(user.getEmail());
-        user.setPassword(passwordEncoder.encode(user.getPassword()));
-        return userRepository.save(user);
-    }
+    /* ---------------- Staff Creation ---------------- */
 
-    private void ensureEmailNotExists(String email) {
-        if (userRepository.findByEmail(email).isPresent()) {
-            throw new IllegalStateException("Email already exists");
-        }
-    }
-    
-   
     @Transactional
-    public String createStaffUser(
-            User user,
-            List<Long> hotelIds
-    ) {
+    public String createStaffUser(User user, Long hotelId) {
 
         if (user.getRole() != Role.MANAGER && user.getRole() != Role.RECEPTIONIST) {
-            throw new IllegalArgumentException("Only MANAGER or RECEPTIONIST can be created via this flow");
+            throw new IllegalArgumentException("Only MANAGER or RECEPTIONIST can be created");
         }
 
         ensureEmailNotExists(user.getEmail());
-        
+
         user.setPassword(passwordEncoder.encode(user.getPassword()));
         user.setEnabled(false);
         User savedUser = userRepository.save(user);
 
-        hotelIds.forEach(hotelId -> {
-            UserHotelAssignment assignment = UserHotelAssignment.builder()
-                    .userId(savedUser.getId())
-                    .hotelId(hotelId)
-                    .build();
-            userHotelAssignmentRepository.save(assignment);
-        });
+        UserHotelAssignment assignment = UserHotelAssignment.builder()
+                .userId(savedUser.getId())
+                .hotelId(hotelId)
+                .build();
+
+        userHotelAssignmentRepository.save(assignment);
 
         return generateActivationToken(savedUser.getId());
     }
-    public String generateActivationToken(Long userId) {
 
-        String token = UUID.randomUUID().toString().replace("-", "");
+    /* ---------------- Activation ---------------- */
 
-        ActivationToken activationToken = ActivationToken.builder()
-                .token(token)
-                .userId(userId)
-                .expiresAt(LocalDateTime.now().plusHours(24))
-                .used(false)
-                .build();
-
-        activationTokenRepository.save(activationToken);
-
-        return token;
-    }
-    
     @Transactional
     public void activateUser(String token) {
 
@@ -111,32 +83,47 @@ public class UserService {
         }
 
         if (activationToken.getExpiresAt().isBefore(LocalDateTime.now())) {
-            throw new IllegalStateException("Activation token has expired");
+            throw new IllegalStateException("Activation token expired");
         }
 
         User user = userRepository.findById(activationToken.getUserId())
-                .orElseThrow(() -> new IllegalStateException("User not found for token"));
+                .orElseThrow(() -> new IllegalStateException("User not found"));
 
         if (user.isEnabled()) {
-            throw new IllegalStateException("User is already activated");
+            throw new IllegalStateException("User already activated");
         }
 
-        // Activate user
+        if (user.getRole() != Role.MANAGER && user.getRole() != Role.RECEPTIONIST) {
+            throw new IllegalStateException("Only staff users require activation");
+        }
+
+        userHotelAssignmentRepository.findByUserId(user.getId())
+                .orElseThrow(() ->
+                        new IllegalStateException("Staff user has no hotel assignment")
+                );
+
         user.setEnabled(true);
         userRepository.save(user);
 
-        // Invalidate token
         activationToken.setUsed(true);
         activationTokenRepository.save(activationToken);
     }
-    
+
+    /* ---------------- Authentication ---------------- */
+
     public User authenticate(String email, String rawPassword) {
 
         User user = userRepository.findByEmail(email)
                 .orElseThrow(() -> new IllegalArgumentException("Invalid credentials"));
 
         if (!user.isEnabled()) {
-            throw new IllegalStateException("Account is not activated");
+            throw new IllegalStateException("Account not activated");
+        }
+        if (user.getPasswordLastChangedAt()
+                .plusDays(PASSWORD_EXPIRY_DAYS)
+                .isBefore(LocalDateTime.now())) {
+
+            throw new IllegalStateException("Password expired");
         }
 
         if (!passwordEncoder.matches(rawPassword, user.getPassword())) {
@@ -144,5 +131,106 @@ public class UserService {
         }
 
         return user;
-    }    
+    }
+    
+    public Long getAssignedHotelId(Long userId) {
+
+        return userHotelAssignmentRepository.findByUserId(userId)
+                .orElseThrow(() ->
+                        new IllegalStateException("Staff user has no hotel assignment")
+                )
+                .getHotelId();
+    }
+    
+    @Transactional
+    public void changePassword(Long userId, String currentPassword, String newPassword) {
+
+        User user = userRepository.findById(userId)
+                .orElseThrow(() -> new IllegalStateException("User not found"));
+
+        if (!passwordEncoder.matches(currentPassword, user.getPassword())) {
+            throw new IllegalArgumentException("Invalid current password");
+        }
+
+        if (!newPassword.matches(STRONG_PASSWORD_REGEX)) {
+            throw new IllegalArgumentException("Weak password");
+        }
+
+        user.setPassword(passwordEncoder.encode(newPassword));
+        user.setPasswordLastChangedAt(LocalDateTime.now());
+
+        userRepository.save(user);
+    }
+    
+    public User getUserById(Long userId) {
+        return userRepository.findById(userId)
+                .orElseThrow(() -> new IllegalStateException("User not found"));
+    }
+
+    public List<UserResponse> listAllUsers() {
+        return userRepository.findAll()
+                .stream()
+                .map(u -> new UserResponse(
+                        u.getId(),
+                        u.getFullName(),
+                        u.getEmail(),
+                        u.getRole(),
+                        u.isEnabled()
+                ))
+                .toList();
+    }
+
+    @Transactional
+    public void deactivateUser(Long targetUserId, Long adminId) {
+
+        if (targetUserId.equals(adminId)) {
+            throw new IllegalStateException("Admin cannot deactivate self");
+        }
+
+        User user = userRepository.findById(targetUserId)
+                .orElseThrow(() -> new IllegalStateException("User not found"));
+
+        user.setEnabled(false);
+        userRepository.save(user);
+    }
+
+    @Transactional
+    public void reassignStaffHotel(Long userId, Long hotelId) {
+
+        User user = userRepository.findById(userId)
+                .orElseThrow(() -> new IllegalStateException("User not found"));
+
+        if (user.getRole() != Role.MANAGER && user.getRole() != Role.RECEPTIONIST) {
+            throw new IllegalStateException("Only staff can be reassigned");
+        }
+
+        UserHotelAssignment assignment =
+                userHotelAssignmentRepository.findByUserId(userId)
+                        .orElseThrow(() -> new IllegalStateException("Staff has no assignment"));
+
+        assignment.setHotelId(hotelId);
+        userHotelAssignmentRepository.save(assignment);
+    }
+
+    /* ---------------- Helpers ---------------- */
+
+    private void ensureEmailNotExists(String email) {
+        if (userRepository.findByEmail(email).isPresent()) {
+            throw new IllegalStateException("Email already exists");
+        }
+    }
+
+    private String generateActivationToken(Long userId) {
+        String token = UUID.randomUUID().toString().replace("-", "");
+
+        ActivationToken activationToken = ActivationToken.builder()
+                .token(token)
+                .userId(userId)
+                .expiresAt(LocalDateTime.now().plusHours(24))
+                .used(false)
+                .build();
+
+        activationTokenRepository.save(activationToken);
+        return token;
+    }
 }

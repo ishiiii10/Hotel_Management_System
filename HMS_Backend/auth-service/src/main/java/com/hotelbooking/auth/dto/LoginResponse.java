@@ -1,15 +1,20 @@
 package com.hotelbooking.auth.dto;
 
 import com.hotelbooking.auth.domain.Role;
-
-import lombok.AllArgsConstructor;
 import lombok.Getter;
 
 @Getter
-@AllArgsConstructor
 public class LoginResponse {
 
-	private String token;
-    private String email;
-    private Role role;
+    private final String token;
+    private final String email;
+    private final Role role;
+    private final Long hotelId; // null for ADMIN & GUEST
+
+    public LoginResponse(String token, String email, Role role, Long hotelId) {
+        this.token = token;
+        this.email = email;
+        this.role = role;
+        this.hotelId = hotelId;
+    }
 }

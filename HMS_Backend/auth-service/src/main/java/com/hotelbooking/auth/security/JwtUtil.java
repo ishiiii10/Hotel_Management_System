@@ -9,14 +9,14 @@ import javax.crypto.SecretKey;
 
 import org.springframework.stereotype.Component;
 
+import com.hotelbooking.auth.config.JwtProperties;
+import com.hotelbooking.auth.domain.Role;
+import com.hotelbooking.auth.domain.User;
+
 import io.jsonwebtoken.Claims;
 import io.jsonwebtoken.Jwts;
 import io.jsonwebtoken.security.Keys;
-
 import lombok.RequiredArgsConstructor;
-
-import com.hotelbooking.auth.domain.User;
-import com.hotelbooking.auth.config.JwtProperties;
 
 @Component
 @RequiredArgsConstructor
@@ -30,8 +30,9 @@ public class JwtUtil {
         );
     }
 
-    public String generateToken(User user) {
-        return Jwts.builder()
+    public String generateToken(User user, Long hotelId) {
+
+        var builder = Jwts.builder()
                 .subject(user.getEmail())
                 .claim("role", user.getRole().name())
                 .claim("userId", user.getId())
@@ -41,14 +42,20 @@ public class JwtUtil {
                                 Instant.now()
                                         .plus(props.getExpiryMinutes(), ChronoUnit.MINUTES)
                         )
-                )
+                );
+
+        if (user.getRole() == Role.MANAGER || user.getRole() == Role.RECEPTIONIST) {
+            builder.claim("hotelId", hotelId);
+        }
+
+        return builder
                 .signWith(getSigningKey())
                 .compact();
     }
 
     public Claims validateToken(String token) {
         return Jwts.parser()
-                .verifyWith(getSigningKey()) 
+                .verifyWith(getSigningKey())
                 .build()
                 .parseSignedClaims(token)
                 .getPayload();

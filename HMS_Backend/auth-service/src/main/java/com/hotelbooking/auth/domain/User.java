@@ -1,5 +1,7 @@
 package com.hotelbooking.auth.domain;
 
+import java.time.LocalDateTime;
+
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
 import jakarta.persistence.EnumType;
@@ -58,6 +60,9 @@ public class User {
             message = "Password must contain at least one letter and one number"
     )
     private String password;
+    
+    @Column(nullable = false)
+    private LocalDateTime passwordLastChangedAt;
 
     @NotNull(message = "Role is required")
     @Enumerated(EnumType.STRING)
@@ -72,5 +77,6 @@ public class User {
         if (this.role == Role.GUEST) {
             this.enabled = true;
         }
+        this.passwordLastChangedAt = LocalDateTime.now();
     }
 }

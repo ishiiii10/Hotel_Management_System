@@ -26,8 +26,8 @@ public class JwtAuthFilter implements GlobalFilter, Ordered {
     private static final List<String> PUBLIC_PATHS = List.of(
             "/auth/login",
             "/auth/register",
+            "/auth/register/guest",
             "/auth/activate",
-            "/auth/validate",
             "/actuator"
     );
 
@@ -46,29 +46,44 @@ public class JwtAuthFilter implements GlobalFilter, Ordered {
                 .getFirst(HttpHeaders.AUTHORIZATION);
 
         if (authHeader == null || !authHeader.startsWith("Bearer ")) {
-            return unauthorized(exchange, "Missing Authorization header");
+            return unauthorized(exchange);
         }
 
         String token = authHeader.substring(7);
 
         try {
+            // Validate JWT
             Claims claims = jwtUtil.validate(token);
 
-            ServerHttpRequest mutatedRequest = exchange.getRequest()
+            // Start request mutation
+            ServerHttpRequest.Builder requestBuilder = exchange.getRequest()
                     .mutate()
                     .header("X-User-Id", claims.get("userId").toString())
                     .header("X-User-Role", claims.get("role").toString())
-                    .header("X-User-Email", claims.getSubject())
-                    .build();
+                    .header("X-User-Email", claims.getSubject());
 
-            return chain.filter(exchange.mutate().request(mutatedRequest).build());
+            // Conditionally add hotelId for staff
+            if (claims.get("hotelId") != null) {
+                requestBuilder.header(
+                        "X-Hotel-Id",
+                        claims.get("hotelId").toString()
+                );
+            }
+
+            // Build mutated request
+            ServerHttpRequest mutatedRequest = requestBuilder.build();
+
+            // Continue filter chain
+            return chain.filter(
+                    exchange.mutate().request(mutatedRequest).build()
+            );
 
         } catch (Exception e) {
-            return unauthorized(exchange, "Invalid or expired token");
+            return unauthorized(exchange);
         }
     }
 
-    private Mono<Void> unauthorized(ServerWebExchange exchange, String message) {
+    private Mono<Void> unauthorized(ServerWebExchange exchange) {
         exchange.getResponse().setStatusCode(HttpStatus.UNAUTHORIZED);
         return exchange.getResponse().setComplete();
     }
