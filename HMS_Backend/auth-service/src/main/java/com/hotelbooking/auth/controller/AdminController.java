@@ -7,9 +7,11 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
 import com.hotelbooking.auth.domain.User;
+import com.hotelbooking.auth.dto.AdminUserResponse;
 import com.hotelbooking.auth.dto.StaffCreateRequest;
 import com.hotelbooking.auth.dto.UserResponse;
 import com.hotelbooking.auth.service.UserService;
+
 
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
@@ -41,8 +43,8 @@ public class AdminController {
 
     /* List all users */
     @GetMapping("/users")
-    public ResponseEntity<List<UserResponse>> listUsers() {
-        return ResponseEntity.ok(userService.listAllUsers());
+    public ResponseEntity<List<AdminUserResponse>> listUsers() {
+        return ResponseEntity.ok(userService.listAllUsersForAdmin());
     }
 
     /* Deactivate user */

@@ -51,6 +51,7 @@ public class AuthController {
 
         UserResponse response = new UserResponse(
                 saved.getId(),
+                saved.getPublicUserId(),
                 saved.getFullName(),
                 saved.getEmail(),
                 saved.getRole(),
@@ -96,12 +97,14 @@ public class AuthController {
                 new UserResponse(
                         user.getId(),
                         user.getFullName(),
+                        user.getPublicUserId(),
                         user.getEmail(),
                         user.getRole(),
                         user.isEnabled()
                 )
         );
     }
+    
     
     @PostMapping("/change-password")
     public ResponseEntity<Void> changePassword(

@@ -1,6 +1,7 @@
 package com.hotelbooking.auth.domain;
 
 import java.time.LocalDateTime;
+import java.util.UUID;
 
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
@@ -46,6 +47,10 @@ public class User {
     @Size(min = 2, max = 100, message = "Full name must be between 2 and 100 characters")
     @Column(nullable = false, length = 100)
     private String fullName;
+    
+    @Column( unique = true, updatable = false)
+    private String publicUserId;
+   
 
     @NotBlank(message = "Email is required")
     @Email(message = "Email must be valid")
@@ -76,6 +81,10 @@ public class User {
     void onCreate() {
         if (this.role == Role.GUEST) {
             this.enabled = true;
+        }
+        if (this.publicUserId == null) {
+            this.publicUserId = role.name() + "-" +
+                UUID.randomUUID().toString().substring(0, 6).toUpperCase();
         }
         this.passwordLastChangedAt = LocalDateTime.now();
     }

@@ -11,6 +11,7 @@ import com.hotelbooking.auth.domain.ActivationToken;
 import com.hotelbooking.auth.domain.Role;
 import com.hotelbooking.auth.domain.User;
 import com.hotelbooking.auth.domain.UserHotelAssignment;
+import com.hotelbooking.auth.dto.AdminUserResponse;
 import com.hotelbooking.auth.dto.UserResponse;
 import com.hotelbooking.auth.repository.ActivationTokenRepository;
 import com.hotelbooking.auth.repository.UserHotelAssignmentRepository;
@@ -40,6 +41,7 @@ public class UserService {
         }
 
         ensureEmailNotExists(user.getEmail());
+        user.setPublicUserId(generatePublicUserId(Role.GUEST));
         user.setPassword(passwordEncoder.encode(user.getPassword()));
         user.setEnabled(true);
         return userRepository.save(user);
@@ -56,6 +58,7 @@ public class UserService {
 
         ensureEmailNotExists(user.getEmail());
 
+        user.setPublicUserId(generatePublicUserId(user.getRole()));
         user.setPassword(passwordEncoder.encode(user.getPassword()));
         user.setEnabled(false);
         User savedUser = userRepository.save(user);
@@ -97,7 +100,7 @@ public class UserService {
             throw new IllegalStateException("Only staff users require activation");
         }
 
-        userHotelAssignmentRepository.findByUserId(user.getId())
+        userHotelAssignmentRepository.findOneByUserId(user.getId())
                 .orElseThrow(() ->
                         new IllegalStateException("Staff user has no hotel assignment")
                 );
@@ -135,7 +138,7 @@ public class UserService {
     
     public Long getAssignedHotelId(Long userId) {
 
-        return userHotelAssignmentRepository.findByUserId(userId)
+        return userHotelAssignmentRepository.findOneByUserId(userId)
                 .orElseThrow(() ->
                         new IllegalStateException("Staff user has no hotel assignment")
                 )
@@ -167,16 +170,30 @@ public class UserService {
                 .orElseThrow(() -> new IllegalStateException("User not found"));
     }
 
-    public List<UserResponse> listAllUsers() {
+    public List<AdminUserResponse> listAllUsersForAdmin() {
+
         return userRepository.findAll()
                 .stream()
-                .map(u -> new UserResponse(
-                        u.getId(),
-                        u.getFullName(),
-                        u.getEmail(),
-                        u.getRole(),
-                        u.isEnabled()
-                ))
+                .map(user -> {
+
+                	Long hotelId = null;
+
+                	if (user.getRole() == Role.MANAGER || user.getRole() == Role.RECEPTIONIST) {
+                	    hotelId = userHotelAssignmentRepository.findOneByUserId(user.getId())
+                	            .map(UserHotelAssignment::getHotelId)
+                	            .orElse(null); // <-- DO NOT THROW
+                	}
+
+                    return new AdminUserResponse(
+                            user.getId(),
+                            user.getPublicUserId(),
+                            user.getFullName(),
+                            user.getEmail(),
+                            user.getRole(),
+                            user.isEnabled(),
+                            hotelId
+                    );
+                })
                 .toList();
     }
 
@@ -200,12 +217,16 @@ public class UserService {
         User user = userRepository.findById(userId)
                 .orElseThrow(() -> new IllegalStateException("User not found"));
 
+        if (user.getRole() == Role.GUEST) {
+            throw new IllegalStateException("Guests cannot be assigned to hotels");
+        }
+
         if (user.getRole() != Role.MANAGER && user.getRole() != Role.RECEPTIONIST) {
             throw new IllegalStateException("Only staff can be reassigned");
         }
 
         UserHotelAssignment assignment =
-                userHotelAssignmentRepository.findByUserId(userId)
+                userHotelAssignmentRepository.findOneByUserId(userId)
                         .orElseThrow(() -> new IllegalStateException("Staff has no assignment"));
 
         assignment.setHotelId(hotelId);
@@ -218,6 +239,9 @@ public class UserService {
         if (userRepository.findByEmail(email).isPresent()) {
             throw new IllegalStateException("Email already exists");
         }
+    }
+    private String generatePublicUserId(Role role) {
+        return role.name() + "-" + UUID.randomUUID().toString().substring(0, 6).toUpperCase();
     }
 
     private String generateActivationToken(Long userId) {

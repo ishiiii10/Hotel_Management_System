@@ -9,7 +9,7 @@ import com.hotelbooking.auth.domain.UserHotelAssignment;
 public interface UserHotelAssignmentRepository
         extends JpaRepository<UserHotelAssignment, Long> {
 
-    Optional<UserHotelAssignment> findByUserId(Long userId);
+	Optional<UserHotelAssignment> findOneByUserId(Long userId);
 
     boolean existsByUserId(Long userId);
 }
