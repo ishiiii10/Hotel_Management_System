@@ -1,5 +1,12 @@
 package com.hotelbooking.hotel.dto;
 
-public class AssignRoomRequest {
+import jakarta.validation.constraints.NotBlank;
+import lombok.Getter;
+import lombok.Setter;
 
+@Getter
+@Setter
+public class AssignRoomRequest {
+    @NotBlank
+    private String bookingId;
 }
