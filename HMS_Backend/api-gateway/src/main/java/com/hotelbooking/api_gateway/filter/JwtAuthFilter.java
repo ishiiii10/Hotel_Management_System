@@ -33,7 +33,10 @@ public class JwtAuthFilter implements GlobalFilter, Ordered {
             new PublicRoute("POST", "/auth/activate"),
 
             // Hotel public APIs
-            new PublicRoute("GET", "/hotels")
+            new PublicRoute("GET", "/hotels"),
+            
+            new PublicRoute("GET", "/hotels/"),
+            new PublicRoute("GET", "/room-categories")
     );
 
     @Override
