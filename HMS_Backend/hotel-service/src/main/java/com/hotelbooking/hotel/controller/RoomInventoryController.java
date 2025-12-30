@@ -17,17 +17,24 @@ public class RoomInventoryController {
 
     private final RoomInventoryService service;
 
-    /* ---------------- MANAGER ---------------- */
+    /* ---------------- ADMIN / MANAGER ---------------- */
 
     @PutMapping("/hotels/{hotelId}/inventory")
     public RoomInventoryResponse updateInventory(
-            @RequestHeader("X-User-Role") String role,
-            @RequestHeader("X-Hotel-Id") Long staffHotelId,
+            @RequestHeader(value = "X-User-Role", required = false) String role,
+            @RequestHeader(value = "X-Hotel-Id", required = false) Long staffHotelId,
             @PathVariable Long hotelId,
             @Valid @RequestBody UpdateInventoryRequest request
     ) {
-        requireManager(role);
-        verifyHotel(staffHotelId, hotelId);
+        requireAdminOrManager(role);
+
+        // Only MANAGER is hotel-bound
+        if ("MANAGER".equals(role)) {
+            if (staffHotelId == null) {
+                throw new IllegalStateException("Missing hotel context for manager");
+            }
+            verifyHotel(staffHotelId, hotelId);
+        }
 
         RoomInventory inventory = service.upsertInventory(
                 hotelId,
@@ -42,10 +49,19 @@ public class RoomInventoryController {
 
     @GetMapping("/hotels/{hotelId}/inventory")
     public List<RoomInventoryResponse> getInventory(
-            @RequestHeader("X-User-Role") String role,
+            @RequestHeader(value = "X-User-Role", required = false) String role,
+            @RequestHeader(value = "X-Hotel-Id", required = false) Long staffHotelId,
             @PathVariable Long hotelId
     ) {
         requireAdminOrManager(role);
+
+        // Manager can only view own hotel
+        if ("MANAGER".equals(role)) {
+            if (staffHotelId == null) {
+                throw new IllegalStateException("Missing hotel context");
+            }
+            verifyHotel(staffHotelId, hotelId);
+        }
 
         return service.getInventory(hotelId)
                 .stream()
@@ -55,13 +71,12 @@ public class RoomInventoryController {
 
     /* ---------------- Helpers ---------------- */
 
-    private void requireManager(String role) {
-        if (!"MANAGER".equals(role)) {
-            throw new IllegalStateException("Access denied");
-        }
-    }
+    
 
     private void requireAdminOrManager(String role) {
+        if (role == null) {
+            throw new IllegalStateException("Missing role information");
+        }
         if (!"ADMIN".equals(role) && !"MANAGER".equals(role)) {
             throw new IllegalStateException("Access denied");
         }

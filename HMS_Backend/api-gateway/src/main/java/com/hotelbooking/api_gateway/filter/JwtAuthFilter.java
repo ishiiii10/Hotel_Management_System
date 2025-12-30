@@ -27,19 +27,21 @@ public class JwtAuthFilter implements GlobalFilter, Ordered {
 
     private static final List<PublicRoute> PUBLIC_ROUTES = List.of(
 
-            // Auth service
-            new PublicRoute("POST", "/auth/login"),
-            new PublicRoute("POST", "/auth/register"),
-            new PublicRoute("POST", "/auth/activate"),
+    		// Auth service
+    		new PublicRoute("POST", "/auth/login"),
+    		new PublicRoute("POST", "/auth/register"),
+    		new PublicRoute("POST", "/auth/activate"),
 
-            // Hotel public APIs
-            new PublicRoute("GET", "/hotels"),
-            
-            // Room category public
-            new PublicRoute("GET", "/hotels/"),
-            new PublicRoute("GET", "/room-categories"),
-            // Physical room public
-            new PublicRoute("GET", "/physical-rooms")
+    		// Public hotel browsing ONLY
+    		new PublicRoute("GET", "/hotels/search"),     // search hotels
+    		new PublicRoute("GET", "/hotels/public"),     // OPTIONAL: public listing endpoint
+    		                                                // (recommended)
+
+    		// Room category public
+    		new PublicRoute("GET", "/room-categories"),
+
+    		// Physical room public (read-only)
+    		new PublicRoute("GET", "/physical-rooms")
     );
 
     @Override
