@@ -1,5 +1,6 @@
 package com.hotelbooking.booking.service;
 
+import java.util.List;
 import java.util.UUID;
 
 import org.springframework.stereotype.Service;
@@ -7,8 +8,10 @@ import org.springframework.transaction.annotation.Transactional;
 
 import com.hotelbooking.booking.client.HotelServiceClient;
 import com.hotelbooking.booking.domain.Booking;
+import com.hotelbooking.booking.domain.BookingGuest;
 import com.hotelbooking.booking.domain.BookingStatus;
 import com.hotelbooking.booking.dto.CreateBookingRequest;
+import com.hotelbooking.booking.repository.BookingGuestRepository;
 import com.hotelbooking.booking.repository.BookingRepository;
 
 import lombok.RequiredArgsConstructor;
@@ -19,6 +22,7 @@ public class BookingService {
 
     private final BookingRepository bookingRepository;
     private final HotelServiceClient hotelServiceClient;
+    private final BookingGuestRepository bookingGuestRepository;
 
     @Transactional
     public Booking createBooking(
@@ -50,5 +54,50 @@ public class BookingService {
 
     private String generateBookingCode() {
         return "BOOK-" + UUID.randomUUID().toString().substring(0, 6).toUpperCase();
+    }
+    
+    public Booking getBookingById(Long bookingId, Long requesterId, String role) {
+
+        Booking booking = bookingRepository.findById(bookingId)
+                .orElseThrow(() -> new IllegalStateException("Booking not found"));
+
+        if ("GUEST".equals(role)
+                && !booking.getPrimaryGuestUserId().equals(requesterId)) {
+            throw new IllegalStateException("Access denied");
+        }
+
+        return booking;
+    }
+    
+    public List<Booking> getBookingsForGuest(Long userId) {
+        return bookingRepository.findByPrimaryGuestUserId(userId);
+    }
+    
+    public List<Booking> getBookingsForHotel(
+            Long hotelId,
+            Long requesterHotelId,
+            String role
+    ) {
+        if ("MANAGER".equals(role) && !hotelId.equals(requesterHotelId)) {
+            throw new IllegalStateException("Access denied");
+        }
+
+        return bookingRepository.findByHotelId(hotelId);
+    }
+    
+    public List<BookingGuest> getGuestsForBooking(
+            Long bookingId,
+            Long requesterId,
+            String role
+    ) {
+        Booking booking = bookingRepository.findById(bookingId)
+                .orElseThrow(() -> new IllegalStateException("Booking not found"));
+
+        if ("GUEST".equals(role)
+                && !booking.getPrimaryGuestUserId().equals(requesterId)) {
+            throw new IllegalStateException("Access denied");
+        }
+
+        return bookingGuestRepository.findByBookingId(bookingId);
     }
 }
