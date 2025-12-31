@@ -134,4 +134,20 @@ public class BookingController {
                 request.getGuests()
         );
     }
+    
+    @PostMapping("/{id}/guests")
+    @ResponseStatus(HttpStatus.CREATED)
+    public void addWalkInGuests(
+            @PathVariable Long id,
+            @RequestHeader("X-User-Role") String role,
+            @RequestHeader("X-Hotel-Id") Long staffHotelId,
+            @Valid @RequestBody UpdateBookingGuestsRequest request
+    ) {
+        bookingService.addWalkInGuests(
+                id,
+                role,
+                staffHotelId,
+                request.getGuests()
+        );
+    }
 }

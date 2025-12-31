@@ -186,4 +186,39 @@ public class BookingService {
                 )
         );
     }
+    
+    @Transactional
+    public void addWalkInGuests(
+            Long bookingId,
+            String role,
+            Long staffHotelId,
+            List<GuestDto> guests
+    ) {
+        if (!"RECEPTIONIST".equals(role)) {
+            throw new IllegalStateException("Access denied");
+        }
+
+        Booking booking = bookingRepository.findById(bookingId)
+                .orElseThrow(() -> new IllegalStateException("Booking not found"));
+
+        if (!booking.getHotelId().equals(staffHotelId)) {
+            throw new IllegalStateException("Access denied");
+        }
+
+        if (booking.getStatus() != BookingStatus.CONFIRMED) {
+            throw new IllegalStateException("Guests can only be added to confirmed bookings");
+        }
+
+        guests.forEach(g ->
+                bookingGuestRepository.save(
+                        BookingGuest.builder()
+                                .bookingId(bookingId)
+                                .fullName(g.getFullName())
+                                .age(g.getAge())
+                                .idType(g.getIdType())
+                                .idNumber(g.getIdNumber())
+                                .build()
+                )
+        );
+    }
 }
