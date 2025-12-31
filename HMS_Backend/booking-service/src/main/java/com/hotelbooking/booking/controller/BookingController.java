@@ -106,4 +106,15 @@ public class BookingController {
                 guest.getIdNumber()
         );
     }
+    
+    @DeleteMapping("/{id}")
+    @ResponseStatus(HttpStatus.NO_CONTENT)
+    public void cancelBooking(
+            @PathVariable Long id,
+            @RequestHeader("X-User-Id") Long userId,
+            @RequestHeader("X-User-Role") String role,
+            @RequestHeader(value = "X-Hotel-Id", required = false) Long staffHotelId
+    ) {
+        bookingService.cancelBooking(id, userId, role, staffHotelId);
+    }
 }

@@ -1,5 +1,6 @@
 package com.hotelbooking.booking.service;
 
+import java.time.LocalDateTime;
 import java.util.List;
 import java.util.UUID;
 
@@ -99,5 +100,48 @@ public class BookingService {
         }
 
         return bookingGuestRepository.findByBookingId(bookingId);
+    }
+    
+    @Transactional
+    public void cancelBooking(
+            Long bookingId,
+            Long requesterId,
+            String role,
+            Long staffHotelId
+    ) {
+        Booking booking = bookingRepository.findById(bookingId)
+                .orElseThrow(() -> new IllegalStateException("Booking not found"));
+
+        if (booking.getStatus() == BookingStatus.CANCELLED) {
+            throw new IllegalStateException("Booking already cancelled");
+        }
+
+        switch (role) {
+
+            case "GUEST" -> {
+                if (!booking.getPrimaryGuestUserId().equals(requesterId)) {
+                    throw new IllegalStateException("Access denied");
+                }
+            }
+
+            case "MANAGER" -> {
+                if (!booking.getHotelId().equals(staffHotelId)) {
+                    throw new IllegalStateException("Access denied");
+                }
+            }
+
+            case "ADMIN" -> {
+                // allowed
+            }
+
+            default -> throw new IllegalStateException("Access denied");
+        }
+
+        booking.setStatus(BookingStatus.CANCELLED);
+        booking.setCancelledAt(LocalDateTime.now());
+
+        bookingRepository.save(booking);
+
+        // Phase-2: publish BOOKING_CANCELLED event
     }
 }
