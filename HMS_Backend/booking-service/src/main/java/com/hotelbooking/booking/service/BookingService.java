@@ -12,6 +12,7 @@ import com.hotelbooking.booking.domain.Booking;
 import com.hotelbooking.booking.domain.BookingGuest;
 import com.hotelbooking.booking.domain.BookingStatus;
 import com.hotelbooking.booking.dto.CreateBookingRequest;
+import com.hotelbooking.booking.dto.GuestDto;
 import com.hotelbooking.booking.repository.BookingGuestRepository;
 import com.hotelbooking.booking.repository.BookingRepository;
 
@@ -143,5 +144,46 @@ public class BookingService {
         bookingRepository.save(booking);
 
         // Phase-2: publish BOOKING_CANCELLED event
+    }
+    
+    @Transactional
+    public void updateGuests(
+            Long bookingId,
+            Long requesterId,
+            String role,
+            List<GuestDto> guests
+    ) {
+        if (!"GUEST".equals(role)) {
+            throw new IllegalStateException("Access denied");
+        }
+
+        Booking booking = bookingRepository.findById(bookingId)
+                .orElseThrow(() -> new IllegalStateException("Booking not found"));
+
+        if (!booking.getPrimaryGuestUserId().equals(requesterId)) {
+            throw new IllegalStateException("Access denied");
+        }
+
+        if (booking.getStatus() == BookingStatus.CANCELLED) {
+            throw new IllegalStateException("Cannot modify cancelled booking");
+        }
+
+        // delete old guests
+        bookingGuestRepository.deleteAll(
+                bookingGuestRepository.findByBookingId(bookingId)
+        );
+
+        // add new guests
+        guests.forEach(g ->
+                bookingGuestRepository.save(
+                        BookingGuest.builder()
+                                .bookingId(bookingId)
+                                .fullName(g.getFullName())
+                                .age(g.getAge())
+                                .idType(g.getIdType())
+                                .idNumber(g.getIdNumber())
+                                .build()
+                )
+        );
     }
 }

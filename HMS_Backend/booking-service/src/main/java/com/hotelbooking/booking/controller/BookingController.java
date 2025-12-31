@@ -11,6 +11,7 @@ import com.hotelbooking.booking.domain.BookingGuest;
 import com.hotelbooking.booking.dto.BookingGuestResponse;
 import com.hotelbooking.booking.dto.BookingResponse;
 import com.hotelbooking.booking.dto.CreateBookingRequest;
+import com.hotelbooking.booking.dto.UpdateBookingGuestsRequest;
 import com.hotelbooking.booking.service.BookingService;
 
 import jakarta.validation.Valid;
@@ -116,5 +117,21 @@ public class BookingController {
             @RequestHeader(value = "X-Hotel-Id", required = false) Long staffHotelId
     ) {
         bookingService.cancelBooking(id, userId, role, staffHotelId);
+    }
+    
+    @PutMapping("/{id}/guests")
+    @ResponseStatus(HttpStatus.NO_CONTENT)
+    public void updateGuests(
+            @PathVariable Long id,
+            @RequestHeader("X-User-Id") Long userId,
+            @RequestHeader("X-User-Role") String role,
+            @Valid @RequestBody UpdateBookingGuestsRequest request
+    ) {
+        bookingService.updateGuests(
+                id,
+                userId,
+                role,
+                request.getGuests()
+        );
     }
 }
