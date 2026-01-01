@@ -31,6 +31,9 @@ public class BookingService {
             Long userId,
             CreateBookingRequest request
     ) {
+    	if (bookingRepository.existsByHoldId(request.getHoldId())) {
+    	    throw new IllegalStateException("Hold already consumed");
+    	}
 
         // 1. Create booking in CREATED state
         Booking booking = Booking.builder()

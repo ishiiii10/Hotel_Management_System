@@ -15,4 +15,6 @@ public interface BookingRepository
     List<Booking> findByPrimaryGuestUserId(Long userId);
 
     List<Booking> findByHotelId(Long hotelId);
+    
+    boolean existsByHoldId(String holdId);
 }

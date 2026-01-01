@@ -7,7 +7,12 @@ import jakarta.persistence.*;
 import lombok.*;
 
 @Entity
-@Table(name = "bookings")
+@Table(
+    name = "bookings",
+    uniqueConstraints = {
+        @UniqueConstraint(columnNames = "holdId")
+    }
+)
 @Getter
 @Setter
 @NoArgsConstructor
