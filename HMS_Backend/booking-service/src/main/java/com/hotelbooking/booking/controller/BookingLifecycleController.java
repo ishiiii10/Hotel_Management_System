@@ -11,21 +11,21 @@ import lombok.RequiredArgsConstructor;
 public class BookingLifecycleController {
     private final BookingService bookingService;
 
+    @PostMapping("/{id}/confirm")
+    public ResponseEntity<Void> confirm(@PathVariable Long id, @RequestHeader("X-User-Role") String role) {
+        bookingService.confirm(id, role);
+        return ResponseEntity.noContent().build();
+    }
+
     @PostMapping("/{id}/check-in")
-    public ResponseEntity<Void> checkIn(@PathVariable Long id) {
-        bookingService.checkIn(id);
+    public ResponseEntity<Void> checkIn(@PathVariable Long id, @RequestHeader("X-User-Role") String role) {
+        bookingService.checkIn(id, role);
         return ResponseEntity.noContent().build();
     }
 
     @PostMapping("/{id}/check-out")
-    public ResponseEntity<Void> checkOut(@PathVariable Long id) {
-        bookingService.checkOut(id);
-        return ResponseEntity.noContent().build();
-    }
-
-    @PostMapping("/{id}/no-show")
-    public ResponseEntity<Void> noShow(@PathVariable Long id) {
-        bookingService.noShow(id);
+    public ResponseEntity<Void> checkOut(@PathVariable Long id, @RequestHeader("X-User-Role") String role) {
+        bookingService.checkOut(id, role);
         return ResponseEntity.noContent().build();
     }
 }

@@ -20,4 +20,20 @@ public class InternalBookingManagementController {
         bookingService.updateStatus(id, status);
         return ResponseEntity.noContent().build();
     }
+
+    @PostMapping("/booked-room")
+    public ResponseEntity<Object> getRoomsBookedByDate(@RequestParam String date) {
+        return ResponseEntity.ok(bookingService.getRoomsBookedByDate(date));
+    }
+
+    @GetMapping("/start-tomorrow")
+    public ResponseEntity<Object> getBookingsStartingTomorrow() {
+        return ResponseEntity.ok(bookingService.getBookingsStartingTomorrow());
+    }
+
+    @GetMapping("/{id}/summary")
+    public ResponseEntity<Object> getBookingSummary(@PathVariable Long id) {
+        return ResponseEntity.ok(bookingService.getBookingSummary(id));
+    }
 }
+

@@ -21,26 +21,16 @@ import lombok.RequiredArgsConstructor;
 @Service
 @RequiredArgsConstructor
 public class BookingService {
-
     private final BookingRepository bookingRepository;
     private final HotelServiceClient hotelServiceClient;
     private final BookingGuestRepository bookingGuestRepository;
+    private final com.hotelbooking.booking.kafka.BookingEventPublisher bookingEventPublisher;
 
     @Transactional
-    public Booking createBooking(
-            Long userId,
-            CreateBookingRequest request
-    ) {
-        // ...existing logic...
-        // After saving booking, publish event
-        bookingEventPublisher.publish("booking.created", saved);
-        // ...
-    }
-    	if (bookingRepository.existsByHoldId(request.getHoldId())) {
-    	    throw new IllegalStateException("Hold already consumed");
-    	}
-
-        // 1. Create booking in CREATED state
+    public Booking createBooking(Long userId, CreateBookingRequest request) {
+        if (bookingRepository.existsByHoldId(request.getHoldId())) {
+            throw new IllegalStateException("Hold already consumed");
+        }
         Booking booking = Booking.builder()
                 .bookingCode(generateBookingCode())
                 .hotelId(request.getHotelId())
@@ -51,16 +41,71 @@ public class BookingService {
                 .holdId(request.getHoldId())
                 .status(BookingStatus.CREATED)
                 .build();
-
         Booking saved = bookingRepository.save(booking);
-
-        // 2. Release hold (CRITICAL STEP)
         hotelServiceClient.releaseHold(request.getHoldId());
-
-        // 3. Confirm booking
         saved.setStatus(BookingStatus.CONFIRMED);
-        return bookingRepository.save(saved);
+        Booking confirmed = bookingRepository.save(saved);
+        bookingEventPublisher.publish("booking.created", confirmed);
+        return confirmed;
     }
+
+    @Transactional
+    public void confirm(Long bookingId, String role) {
+        if (!"GUEST".equals(role)) throw new IllegalStateException("Only guest can confirm");
+        Booking booking = bookingRepository.findById(bookingId)
+                .orElseThrow(() -> new IllegalStateException("Booking not found"));
+        if (booking.getStatus() != BookingStatus.CREATED) throw new IllegalStateException("Booking not in CREATED");
+        booking.setStatus(BookingStatus.CONFIRMED);
+        bookingRepository.save(booking);
+        bookingEventPublisher.publish("booking.confirmed", booking);
+    }
+
+    @Transactional
+    public void checkIn(Long bookingId, String role) {
+        if (!"RECEPTIONIST".equals(role)) throw new IllegalStateException("Only receptionist can check-in");
+        Booking booking = bookingRepository.findById(bookingId)
+                .orElseThrow(() -> new IllegalStateException("Booking not found"));
+        if (booking.getStatus() != BookingStatus.CONFIRMED) throw new IllegalStateException("Booking not confirmed");
+        booking.setStatus(BookingStatus.CHECKED_IN);
+        bookingRepository.save(booking);
+        bookingEventPublisher.publish("booking.checked_in", booking);
+    }
+
+    @Transactional
+    public void checkOut(Long bookingId, String role) {
+        if (!"RECEPTIONIST".equals(role)) throw new IllegalStateException("Only receptionist can check-out");
+        Booking booking = bookingRepository.findById(bookingId)
+                .orElseThrow(() -> new IllegalStateException("Booking not found"));
+        if (booking.getStatus() != BookingStatus.CHECKED_IN) throw new IllegalStateException("Booking not checked-in");
+        booking.setStatus(BookingStatus.CHECKED_OUT);
+        bookingRepository.save(booking);
+        bookingEventPublisher.publish("booking.checked_out", booking);
+    }
+
+    @Transactional
+    public void updateStatus(Long bookingId, BookingStatus status) {
+        Booking booking = bookingRepository.findById(bookingId)
+                .orElseThrow(() -> new IllegalStateException("Booking not found"));
+        booking.setStatus(status);
+        bookingRepository.save(booking);
+        bookingEventPublisher.publish("booking.status_updated", booking);
+    }
+
+    public Object getRoomsBookedByDate(String date) {
+        // Dummy: return count or list
+        return bookingRepository.findAll();
+    }
+
+    public Object getBookingsStartingTomorrow() {
+        // Dummy: return bookings starting tomorrow
+        return bookingRepository.findAll();
+    }
+
+    public Object getBookingSummary(Long id) {
+        // Dummy: return booking summary
+        return bookingRepository.findById(id).orElse(null);
+    }
+
 
     private String generateBookingCode() {
         return "BOOK-" + UUID.randomUUID().toString().substring(0, 6).toUpperCase();
