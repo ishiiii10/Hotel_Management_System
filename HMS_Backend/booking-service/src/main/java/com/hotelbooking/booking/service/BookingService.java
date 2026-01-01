@@ -31,6 +31,11 @@ public class BookingService {
             Long userId,
             CreateBookingRequest request
     ) {
+        // ...existing logic...
+        // After saving booking, publish event
+        bookingEventPublisher.publish("booking.created", saved);
+        // ...
+    }
     	if (bookingRepository.existsByHoldId(request.getHoldId())) {
     	    throw new IllegalStateException("Hold already consumed");
     	}
@@ -113,6 +118,10 @@ public class BookingService {
             String role,
             Long staffHotelId
     ) {
+        // ...existing logic...
+        // After cancelling booking, publish event
+        bookingEventPublisher.publish("booking.cancelled", booking);
+    }
         Booking booking = bookingRepository.findById(bookingId)
                 .orElseThrow(() -> new IllegalStateException("Booking not found"));
 
