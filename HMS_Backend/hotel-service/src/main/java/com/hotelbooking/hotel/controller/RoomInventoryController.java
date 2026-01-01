@@ -2,10 +2,16 @@ package com.hotelbooking.hotel.controller;
 
 import java.util.List;
 
-import org.springframework.web.bind.annotation.*;
+import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.PathVariable;
+import org.springframework.web.bind.annotation.PutMapping;
+import org.springframework.web.bind.annotation.RequestBody;
+import org.springframework.web.bind.annotation.RequestHeader;
+import org.springframework.web.bind.annotation.RestController;
 
 import com.hotelbooking.hotel.domain.RoomInventory;
-import com.hotelbooking.hotel.dto.*;
+import com.hotelbooking.hotel.dto.RoomInventoryResponse;
+import com.hotelbooking.hotel.dto.UpdateInventoryRequest;
 import com.hotelbooking.hotel.service.RoomInventoryService;
 
 import jakarta.validation.Valid;
@@ -75,16 +81,28 @@ public class RoomInventoryController {
 
     private void requireAdminOrManager(String role) {
         if (role == null) {
-            throw new IllegalStateException("Missing role information");
+            throw new com.hotelbooking.hotel.exception.HotelException(
+                com.hotelbooking.hotel.exception.HotelErrorCode.VALIDATION_ERROR,
+                "Missing role information",
+                org.springframework.http.HttpStatus.BAD_REQUEST
+            );
         }
         if (!"ADMIN".equals(role) && !"MANAGER".equals(role)) {
-            throw new IllegalStateException("Access denied");
+            throw new com.hotelbooking.hotel.exception.HotelException(
+                com.hotelbooking.hotel.exception.HotelErrorCode.ACCESS_DENIED,
+                "Access denied",
+                org.springframework.http.HttpStatus.FORBIDDEN
+            );
         }
     }
 
     private void verifyHotel(Long staffHotelId, Long hotelId) {
         if (!staffHotelId.equals(hotelId)) {
-            throw new IllegalStateException("Cross-hotel access denied");
+            throw new com.hotelbooking.hotel.exception.HotelException(
+                com.hotelbooking.hotel.exception.HotelErrorCode.ACCESS_DENIED,
+                "Cross-hotel access denied",
+                org.springframework.http.HttpStatus.FORBIDDEN
+            );
         }
     }
 

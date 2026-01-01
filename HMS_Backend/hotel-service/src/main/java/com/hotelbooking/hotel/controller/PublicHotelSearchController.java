@@ -3,7 +3,10 @@ package com.hotelbooking.hotel.controller;
 import java.time.LocalDate;
 import java.util.List;
 
-import org.springframework.web.bind.annotation.*;
+import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RequestParam;
+import org.springframework.web.bind.annotation.RestController;
 
 import com.hotelbooking.hotel.domain.City;
 import com.hotelbooking.hotel.dto.PublicHotelSearchResponse;
@@ -25,7 +28,11 @@ public class PublicHotelSearchController {
             @RequestParam LocalDate checkOutDate
     ) {
         if (!checkOutDate.isAfter(checkInDate)) {
-            throw new IllegalArgumentException("Invalid date range");
+            throw new com.hotelbooking.hotel.exception.HotelException(
+                com.hotelbooking.hotel.exception.HotelErrorCode.VALIDATION_ERROR,
+                "Invalid date range",
+                org.springframework.http.HttpStatus.BAD_REQUEST
+            );
         }
 
         return searchService.search(city, checkInDate, checkOutDate);

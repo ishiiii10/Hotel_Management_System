@@ -31,8 +31,10 @@ public class RoomInventoryService {
                         .build());
 
         if (totalRooms < inventory.getOutOfService()) {
-            throw new IllegalStateException(
-                    "Total rooms cannot be less than rooms under maintenance"
+            throw new com.hotelbooking.hotel.exception.HotelException(
+                com.hotelbooking.hotel.exception.HotelErrorCode.INVENTORY_RULE_VIOLATION,
+                "Total rooms cannot be less than rooms under maintenance",
+                org.springframework.http.HttpStatus.BAD_REQUEST
             );
         }
 
@@ -54,7 +56,11 @@ public class RoomInventoryService {
                         new IllegalStateException("Inventory not configured"));
 
         if (inventory.getOutOfService() >= inventory.getTotalRooms()) {
-            throw new IllegalStateException("No rooms available to mark maintenance");
+            throw new com.hotelbooking.hotel.exception.HotelException(
+                com.hotelbooking.hotel.exception.HotelErrorCode.INVENTORY_RULE_VIOLATION,
+                "No rooms available to mark maintenance",
+                org.springframework.http.HttpStatus.BAD_REQUEST
+            );
         }
 
         inventory.setOutOfService(inventory.getOutOfService() + 1);
@@ -69,7 +75,11 @@ public class RoomInventoryService {
                         new IllegalStateException("Inventory not configured"));
 
         if (inventory.getOutOfService() <= 0) {
-            throw new IllegalStateException("Out-of-service count already zero");
+            throw new com.hotelbooking.hotel.exception.HotelException(
+                com.hotelbooking.hotel.exception.HotelErrorCode.INVENTORY_RULE_VIOLATION,
+                "Out-of-service count already zero",
+                org.springframework.http.HttpStatus.BAD_REQUEST
+            );
         }
 
         inventory.setOutOfService(inventory.getOutOfService() - 1);

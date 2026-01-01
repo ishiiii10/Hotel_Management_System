@@ -6,11 +6,23 @@ import java.util.List;
 
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
-import org.springframework.web.bind.annotation.*;
+import org.springframework.web.bind.annotation.DeleteMapping;
+import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.PathVariable;
+import org.springframework.web.bind.annotation.PostMapping;
+import org.springframework.web.bind.annotation.PutMapping;
+import org.springframework.web.bind.annotation.RequestBody;
+import org.springframework.web.bind.annotation.RequestHeader;
+import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RequestParam;
+import org.springframework.web.bind.annotation.RestController;
 
 import com.hotelbooking.hotel.domain.City;
 import com.hotelbooking.hotel.domain.Hotel;
-import com.hotelbooking.hotel.dto.*;
+import com.hotelbooking.hotel.dto.CreateHotelRequest;
+import com.hotelbooking.hotel.dto.HotelListResponse;
+import com.hotelbooking.hotel.dto.HotelResponse;
+import com.hotelbooking.hotel.dto.UpdateHotelRequest;
 import com.hotelbooking.hotel.service.HotelService;
 
 import jakarta.validation.Valid;
@@ -73,7 +85,8 @@ public class HotelController {
                         .map(this::toHotelListResponse)
                         .toList()
         );
-    }
+    } // No auth headers required
+
 
     @GetMapping("/{hotelId}")
     public ResponseEntity<HotelResponse> getHotel(
@@ -82,13 +95,18 @@ public class HotelController {
         return ResponseEntity.ok(
                 toHotelResponse(hotelService.getHotel(hotelId))
         );
-    }
+    } // No auth headers required
+
 
     /* ---------------- Helpers ---------------- */
 
     private void requireAdmin(String role) {
         if (!"ADMIN".equals(role)) {
-            throw new IllegalStateException("Access denied");
+            throw new com.hotelbooking.hotel.exception.HotelException(
+                com.hotelbooking.hotel.exception.HotelErrorCode.ACCESS_DENIED,
+                "Access denied",
+                org.springframework.http.HttpStatus.FORBIDDEN
+            );
         }
     }
 
