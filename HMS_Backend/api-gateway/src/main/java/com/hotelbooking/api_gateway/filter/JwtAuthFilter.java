@@ -37,7 +37,10 @@ public class JwtAuthFilter implements GlobalFilter, Ordered {
     	    new PublicRoute("GET", "/hotels/"),
 
     	    // Public availability search
-    	    new PublicRoute("GET", "/hotels/availability/search")
+    	    new PublicRoute("GET", "/hotels/availability/search"),
+    	    
+    	    // Public booking availability check
+    	    new PublicRoute("GET", "/bookings/check-availability")
 
     		
     );
