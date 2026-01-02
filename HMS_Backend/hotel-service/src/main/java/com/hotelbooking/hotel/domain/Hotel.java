@@ -91,8 +91,7 @@ public class Hotel {
     @Column(nullable = false)
     private HotelStatus status;
     
-    private Integer totalRooms;
-    private Integer availableRooms;
+    
 
 
     @Column(nullable = false, updatable = false)
@@ -106,7 +105,6 @@ public class Hotel {
         this.createdAt = LocalDateTime.now();
         this.updatedAt = this.createdAt;
         this.status = HotelStatus.ACTIVE;
-        this.availableRooms = this.totalRooms;
     }
 
     @PreUpdate

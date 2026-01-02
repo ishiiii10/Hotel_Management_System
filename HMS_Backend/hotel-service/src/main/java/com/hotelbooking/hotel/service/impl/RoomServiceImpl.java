@@ -63,6 +63,30 @@ public class RoomServiceImpl implements RoomService {
 
         return savedRoom.getId();
     }
+    
+    @Override
+    @Transactional(readOnly = true)
+    public RoomResponse getRoomById(Long roomId) {
+
+        Room room = roomRepository.findByIdAndIsActiveTrue(roomId)
+                .orElseThrow(() -> new IllegalStateException("Room not found"));
+
+        return new RoomResponse(
+                room.getId(),
+                room.getHotelId(),
+                room.getRoomNumber(),
+                room.getRoomCategory(),
+                room.getPricePerNight(),
+                room.getMaxOccupancy(),
+                room.getFloorNumber(),
+                room.getBedType(),
+                room.getRoomSize(),
+                room.getAmenities(),
+                room.getDescription(),
+                room.getStatus(),
+                room.getIsActive()
+        );
+    }
 
     @Override
     @Transactional(readOnly = true)
@@ -131,6 +155,23 @@ public class RoomServiceImpl implements RoomService {
                 room.getStatus(),
                 room.getIsActive()
         );
+    }
+
+    @Override
+    @Transactional
+    public void deleteRoom(Long roomId) {
+
+        Room room = roomRepository.findById(roomId)
+                .orElseThrow(() -> new IllegalStateException("Room not found"));
+
+        if (!room.getIsActive()) {
+            throw new IllegalStateException("Room already deleted");
+        }
+
+        room.setIsActive(false);
+        room.setStatus(RoomStatus.INACTIVE);
+
+        roomRepository.save(room);
     }
 }
     

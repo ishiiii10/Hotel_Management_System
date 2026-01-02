@@ -40,18 +40,20 @@ public interface RoomAvailabilityRepository
     );
     
     @Query("""
-            SELECT ra.roomId
-            FROM RoomAvailability ra
-            WHERE ra.hotelId = :hotelId
-              AND ra.date >= :checkIn
-              AND ra.date < :checkOut
-            GROUP BY ra.roomId
-            HAVING COUNT(CASE WHEN ra.status <> :available THEN 1 END) = 0
-        """)
-        List<Long> findAvailableRoomIds(
-                @Param("hotelId") Long hotelId,
-                @Param("checkIn") LocalDate checkIn,
-                @Param("checkOut") LocalDate checkOut,
-                @Param("available") AvailabilityStatus available
-        );
+    		SELECT DISTINCT ra.roomId
+    		FROM RoomAvailability ra
+    		WHERE ra.hotelId = :hotelId
+    		AND ra.roomId NOT IN (
+    		    SELECT r2.roomId
+    		    FROM RoomAvailability r2
+    		    WHERE r2.status <> 'AVAILABLE'
+    		    AND r2.date BETWEEN :checkIn AND :checkOut
+    		)
+    		AND ra.date BETWEEN :checkIn AND :checkOut
+    		""")
+    		List<Long> findAvailableRoomIdsStrict(
+    		        @Param("hotelId") Long hotelId,
+    		        @Param("checkIn") LocalDate checkIn,
+    		        @Param("checkOut") LocalDate checkOut
+    		);
 }

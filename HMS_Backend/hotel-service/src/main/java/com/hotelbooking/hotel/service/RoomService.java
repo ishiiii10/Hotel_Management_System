@@ -11,6 +11,10 @@ import com.hotelbooking.hotel.domain.Room;
 public interface RoomService {
 
     Long createRoom(CreateRoomRequest request);
+    
+    RoomResponse getRoomById(Long roomId);
+    
+    void deleteRoom(Long roomId);
 
     List<RoomResponse> getRoomsByHotel(Long hotelId);
     

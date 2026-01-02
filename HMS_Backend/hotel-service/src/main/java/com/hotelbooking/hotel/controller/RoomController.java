@@ -51,6 +51,32 @@ public class RoomController {
                 "data", rooms
         ));
     }
+    
+    @GetMapping("/{id}")
+    public ResponseEntity<?> getRoomById(@PathVariable Long id) {
+
+        RoomResponse response = roomService.getRoomById(id);
+
+        return ResponseEntity.ok(Map.of(
+                "success", true,
+                "data", response
+        ));
+    }
+
+    /* -------- DELETE ROOM (SOFT DELETE) -------- */
+    @DeleteMapping("/{id}")
+    public ResponseEntity<?> deleteRoom(@RequestHeader("X-User-Role") String role,
+            @PathVariable Long id) {
+    	authorize(role);
+
+        roomService.deleteRoom(id);
+
+        return ResponseEntity.ok(Map.of(
+                "success", true,
+                "message", "Room deleted successfully"
+        ));
+    }
+
 
     
     //Update

@@ -3,17 +3,15 @@ package com.hotelbooking.hotel.dto.request;
 
 
 import com.hotelbooking.hotel.enums.City;
+
 import com.hotelbooking.hotel.enums.HotelStatus;
 import com.hotelbooking.hotel.enums.Hotel_Category;
 import com.hotelbooking.hotel.enums.State;
 
-import jakarta.persistence.Column;
-import jakarta.persistence.EnumType;
-import jakarta.persistence.Enumerated;
-import jakarta.validation.constraints.Email;
+
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.NotNull;
-import jakarta.validation.constraints.Pattern;
+
 import lombok.Getter;
 import lombok.Setter;
 
@@ -47,8 +45,6 @@ public class CreateHotelRequest {
     @NotNull
     private HotelStatus status;
 
-    @NotNull
-    private Integer totalRooms;
     
     @NotNull
     private String imageUrl;

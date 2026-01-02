@@ -12,8 +12,12 @@ import com.hotelbooking.hotel.domain.Room;
 public interface RoomRepository extends JpaRepository<Room, Long> {
 
     boolean existsByHotelIdAndRoomNumber(Long hotelId, String roomNumber);
+    
+    Optional<Room> findByIdAndIsActiveTrue(Long id);
 
     List<Room> findByHotelId(Long hotelId);
 
     Optional<Room> findByIdAndHotelId(Long id, Long hotelId);
+    
+    long countByHotelIdAndIsActiveTrue(Long hotelId);
 }

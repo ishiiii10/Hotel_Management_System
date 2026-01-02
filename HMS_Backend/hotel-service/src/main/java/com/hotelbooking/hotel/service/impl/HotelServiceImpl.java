@@ -1,7 +1,5 @@
 package com.hotelbooking.hotel.service.impl;
 
-
-
 import java.time.LocalDate;
 import java.util.List;
 import java.util.Objects;
@@ -17,7 +15,7 @@ import com.hotelbooking.hotel.enums.City;
 import com.hotelbooking.hotel.enums.HotelStatus;
 import com.hotelbooking.hotel.enums.Hotel_Category;
 import com.hotelbooking.hotel.repository.HotelRepository;
-
+import com.hotelbooking.hotel.repository.RoomRepository;
 import com.hotelbooking.hotel.service.HotelService;
 import com.hotelbooking.hotel.service.RoomAvailabilityService;
 
@@ -29,7 +27,10 @@ import lombok.RequiredArgsConstructor;
 public class HotelServiceImpl implements HotelService {
 
     private final HotelRepository hotelRepository;
+    private final RoomRepository roomRepository;
     private final RoomAvailabilityService availabilityService;
+
+    /* ---------------- CREATE / UPDATE (unchanged) ---------------- */
 
     @Override
     public Long createHotel(CreateHotelRequest request) {
@@ -39,8 +40,8 @@ public class HotelServiceImpl implements HotelService {
                 .category(request.getCategory())
                 .description(request.getDescription())
                 .address(request.getAddress())
-                .city(request.getCity())          // enum
-                .state(request.getState())        // enum
+                .city(request.getCity())
+                .state(request.getState())
                 .country(request.getCountry())
                 .pincode(request.getPincode())
                 .contactNumber(request.getContactNumber())
@@ -48,8 +49,6 @@ public class HotelServiceImpl implements HotelService {
                 .starRating(request.getStarRating())
                 .amenities(request.getAmenities())
                 .status(request.getStatus())
-                .totalRooms(request.getTotalRooms())
-                .availableRooms(request.getTotalRooms())
                 .imageUrl(request.getImageUrl())
                 .build();
 
@@ -72,16 +71,16 @@ public class HotelServiceImpl implements HotelService {
         hotel.setPincode(request.getPincode());
         hotel.setContactNumber(request.getContactNumber());
         hotel.setEmail(request.getEmail());
-        
         hotel.setStarRating(request.getStarRating());
         hotel.setAmenities(request.getAmenities());
         hotel.setStatus(request.getStatus());
         hotel.setImageUrl(request.getImageUrl());
 
         hotelRepository.save(hotel);
-
         return hotel.getId();
     }
+
+    /* ---------------- GET HOTEL BY ID ---------------- */
 
     @Override
     @Transactional(readOnly = true)
@@ -89,6 +88,11 @@ public class HotelServiceImpl implements HotelService {
 
         Hotel h = hotelRepository.findById(hotelId)
                 .orElseThrow(() -> new IllegalStateException("Hotel not found"));
+
+        int totalRooms =
+                (int) roomRepository.countByHotelIdAndIsActiveTrue(h.getId());
+
+        int availableRooms = totalRooms;
 
         return new HotelDetailResponse(
                 h.getId(),
@@ -105,12 +109,14 @@ public class HotelServiceImpl implements HotelService {
                 h.getStarRating(),
                 h.getAmenities(),
                 h.getStatus(),
-                h.getTotalRooms(),
-                h.getAvailableRooms(),
+                totalRooms,
+                availableRooms,
                 h.getCreatedAt(),
                 h.getUpdatedAt()
         );
     }
+
+    /* ---------------- SEARCH HOTELS ---------------- */
 
     @Override
     @Transactional(readOnly = true)
@@ -130,6 +136,14 @@ public class HotelServiceImpl implements HotelService {
         return hotels.stream()
                 .map(hotel -> {
 
+                    int totalRooms =
+                            (int) roomRepository
+                                    .countByHotelIdAndIsActiveTrue(hotel.getId());
+
+                    if (totalRooms == 0) {
+                        return null;
+                    }
+
                     int availableRooms;
 
                     if (checkIn != null && checkOut != null) {
@@ -142,7 +156,7 @@ public class HotelServiceImpl implements HotelService {
                                         )
                                         .getAvailableRooms();
                     } else {
-                        availableRooms = hotel.getAvailableRooms();
+                        availableRooms = totalRooms;
                     }
 
                     if (availableRooms == 0) {
@@ -165,7 +179,7 @@ public class HotelServiceImpl implements HotelService {
                             hotel.getAmenities(),
                             hotel.getImageUrl(),
                             hotel.getStatus(),
-                            hotel.getTotalRooms(),
+                            totalRooms,
                             availableRooms
                     );
                 })
@@ -173,6 +187,7 @@ public class HotelServiceImpl implements HotelService {
                 .toList();
     }
 
+    /* ---------------- ADMIN LIST ---------------- */
 
     @Override
     @Transactional(readOnly = true)
@@ -180,28 +195,37 @@ public class HotelServiceImpl implements HotelService {
 
         return hotelRepository.findAll()
                 .stream()
-                .map(h -> new HotelDetailResponse(
-                        h.getId(),
-                        h.getName(),
-                        h.getCategory(),
-                        h.getDescription(),
-                        h.getAddress(),
-                        h.getCity(),
-                        h.getState(),
-                        h.getCountry(),
-                        h.getPincode(),
-                        h.getContactNumber(),
-                        h.getEmail(),
-                        h.getStarRating(),
-                        h.getAmenities(),
-                        h.getStatus(),
-                        h.getTotalRooms(),
-                        h.getAvailableRooms(),
-                        h.getCreatedAt(),
-                        h.getUpdatedAt()
-                ))
+                .map(h -> {
+
+                    int totalRooms =
+                            (int) roomRepository
+                                    .countByHotelIdAndIsActiveTrue(h.getId());
+
+                    return new HotelDetailResponse(
+                            h.getId(),
+                            h.getName(),
+                            h.getCategory(),
+                            h.getDescription(),
+                            h.getAddress(),
+                            h.getCity(),
+                            h.getState(),
+                            h.getCountry(),
+                            h.getPincode(),
+                            h.getContactNumber(),
+                            h.getEmail(),
+                            h.getStarRating(),
+                            h.getAmenities(),
+                            h.getStatus(),
+                            totalRooms,
+                            totalRooms,
+                            h.getCreatedAt(),
+                            h.getUpdatedAt()
+                    );
+                })
                 .toList();
     }
+
+    /* ---------------- SEARCH BY CATEGORY ---------------- */
 
     @Override
     @Transactional(readOnly = true)
@@ -210,32 +234,80 @@ public class HotelServiceImpl implements HotelService {
         return hotelRepository
                 .findByCategoryAndStatus(category, HotelStatus.ACTIVE)
                 .stream()
-                .map(hotel -> new HotelSearchResponse(
-                        hotel.getId(),
-                        hotel.getName(),
-                        hotel.getCategory(),
-                        hotel.getDescription(),
-                        hotel.getAddress(),
-                        hotel.getCity(),
-                        hotel.getState(),
-                        hotel.getCountry(),
-                        hotel.getPincode(),
-                        hotel.getContactNumber(),
-                        hotel.getEmail(),
-                        hotel.getStarRating(),
-                        hotel.getAmenities(),
-                        hotel.getImageUrl(),
-                        hotel.getStatus(),
-                        hotel.getTotalRooms(),
-                        hotel.getAvailableRooms()
-                ))
+                .map(hotel -> {
+
+                    int totalRooms =
+                            (int) roomRepository
+                                    .countByHotelIdAndIsActiveTrue(hotel.getId());
+
+                    if (totalRooms == 0) {
+                        return null;
+                    }
+
+                    return new HotelSearchResponse(
+                            hotel.getId(),
+                            hotel.getName(),
+                            hotel.getCategory(),
+                            hotel.getDescription(),
+                            hotel.getAddress(),
+                            hotel.getCity(),
+                            hotel.getState(),
+                            hotel.getCountry(),
+                            hotel.getPincode(),
+                            hotel.getContactNumber(),
+                            hotel.getEmail(),
+                            hotel.getStarRating(),
+                            hotel.getAmenities(),
+                            hotel.getImageUrl(),
+                            hotel.getStatus(),
+                            totalRooms,
+                            totalRooms
+                    );
+                })
+                .filter(Objects::nonNull)
                 .toList();
     }
 
-	@Override
-	public List<HotelSearchResponse> searchHotelsByCity(City city) {
-		// TODO Auto-generated method stub
-		return null;
-	}
-    
+    /* ---------------- SEARCH BY CITY ---------------- */
+
+    @Override
+    @Transactional(readOnly = true)
+    public List<HotelSearchResponse> searchHotelsByCity(City city) {
+
+        return hotelRepository
+                .findByCityAndStatus(city, HotelStatus.ACTIVE)
+                .stream()
+                .map(hotel -> {
+
+                    int totalRooms =
+                            (int) roomRepository
+                                    .countByHotelIdAndIsActiveTrue(hotel.getId());
+
+                    if (totalRooms == 0) {
+                        return null;
+                    }
+
+                    return new HotelSearchResponse(
+                            hotel.getId(),
+                            hotel.getName(),
+                            hotel.getCategory(),
+                            hotel.getDescription(),
+                            hotel.getAddress(),
+                            hotel.getCity(),
+                            hotel.getState(),
+                            hotel.getCountry(),
+                            hotel.getPincode(),
+                            hotel.getContactNumber(),
+                            hotel.getEmail(),
+                            hotel.getStarRating(),
+                            hotel.getAmenities(),
+                            hotel.getImageUrl(),
+                            hotel.getStatus(),
+                            totalRooms,
+                            totalRooms
+                    );
+                })
+                .filter(Objects::nonNull)
+                .toList();
     }
+}

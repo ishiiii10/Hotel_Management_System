@@ -89,16 +89,23 @@ public class RoomAvailabilityServiceImpl implements RoomAvailabilityService {
             LocalDate checkOut
     ) {
 
+        if (checkIn == null || checkOut == null) {
+            throw new IllegalArgumentException("Check-in and check-out dates are required");
+        }
+
         if (!checkIn.isBefore(checkOut)) {
             throw new IllegalArgumentException("Check-in must be before check-out");
         }
 
-        var roomIds = availabilityRepository.findAvailableRoomIds(
-                hotelId,
-                checkIn,
-                checkOut,
-                AvailabilityStatus.AVAILABLE
-        );
+        // checkOut is exclusive → convert to inclusive
+        LocalDate effectiveCheckOut = checkOut.minusDays(1);
+
+        var roomIds =
+                availabilityRepository.findAvailableRoomIdsStrict(
+                        hotelId,
+                        checkIn,
+                        effectiveCheckOut
+                );
 
         return new AvailabilitySearchResponse(
                 hotelId,
