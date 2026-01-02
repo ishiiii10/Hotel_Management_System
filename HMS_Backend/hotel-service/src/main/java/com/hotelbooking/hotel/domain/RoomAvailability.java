@@ -4,7 +4,7 @@ package com.hotelbooking.hotel.domain;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
 
-import com.hotelbooking.hotel.domain.AvailabilityStatus;
+import com.hotelbooking.hotel.enums.AvailabilityStatus;
 
 import jakarta.persistence.*;
 import lombok.*;

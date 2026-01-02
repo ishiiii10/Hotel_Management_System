@@ -6,9 +6,9 @@ import java.util.Map;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
-import com.hotelbooking.hotel.domain.RoomStatus;
 import com.hotelbooking.hotel.dto.request.CreateRoomRequest;
 import com.hotelbooking.hotel.dto.response.RoomResponse;
+import com.hotelbooking.hotel.enums.RoomStatus;
 import com.hotelbooking.hotel.service.RoomService;
 
 import jakarta.validation.Valid;

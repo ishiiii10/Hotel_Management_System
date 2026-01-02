@@ -7,7 +7,7 @@ import org.springframework.stereotype.Component;
 import org.springframework.transaction.annotation.Transactional;
 
 import com.hotelbooking.hotel.domain.RoomAvailability;
-import com.hotelbooking.hotel.domain.AvailabilityStatus;
+import com.hotelbooking.hotel.enums.AvailabilityStatus;
 import com.hotelbooking.hotel.repository.RoomAvailabilityRepository;
 
 import lombok.RequiredArgsConstructor;
@@ -18,7 +18,7 @@ public class RoomAvailabilityGenerator {
 
     private final RoomAvailabilityRepository availabilityRepository;
 
-    @Value("${hotel.availability.default-days}")
+    @Value("${hotel.availability.default-days:365}")
     private int defaultDays;
 
     @Transactional

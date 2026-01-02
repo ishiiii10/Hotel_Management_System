@@ -7,12 +7,12 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import com.hotelbooking.hotel.domain.RoomAvailability;
-import com.hotelbooking.hotel.domain.AvailabilityStatus;
 import com.hotelbooking.hotel.repository.RoomAvailabilityRepository;
 import com.hotelbooking.hotel.service.RoomAvailabilityService;
 import com.hotelbooking.hotel.dto.request.BlockRoomRequest;
 import com.hotelbooking.hotel.dto.request.UnblockRoomRequest;
 import com.hotelbooking.hotel.dto.response.AvailabilitySearchResponse;
+import com.hotelbooking.hotel.enums.AvailabilityStatus;
 
 import lombok.RequiredArgsConstructor;
 

@@ -6,11 +6,11 @@ import java.util.Map;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
-import com.hotelbooking.hotel.domain.City;
-import com.hotelbooking.hotel.domain.Hotel_Category;
 import com.hotelbooking.hotel.dto.request.CreateHotelRequest;
 import com.hotelbooking.hotel.dto.response.HotelDetailResponse;
 import com.hotelbooking.hotel.dto.response.HotelSearchResponse;
+import com.hotelbooking.hotel.enums.City;
+import com.hotelbooking.hotel.enums.Hotel_Category;
 import com.hotelbooking.hotel.service.HotelService;
 
 import jakarta.validation.Valid;

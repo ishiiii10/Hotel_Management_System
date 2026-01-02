@@ -2,11 +2,11 @@ package com.hotelbooking.hotel.dto.response;
 
 
 
-import com.hotelbooking.hotel.domain.City;
-import com.hotelbooking.hotel.domain.HotelStatus;
-import com.hotelbooking.hotel.domain.Hotel_Category;
+import com.hotelbooking.hotel.enums.City;
+import com.hotelbooking.hotel.enums.HotelStatus;
+import com.hotelbooking.hotel.enums.Hotel_Category;
+import com.hotelbooking.hotel.enums.State;
 
-import com.hotelbooking.hotel.domain.State;
 import lombok.AllArgsConstructor;
 import lombok.Getter;
 

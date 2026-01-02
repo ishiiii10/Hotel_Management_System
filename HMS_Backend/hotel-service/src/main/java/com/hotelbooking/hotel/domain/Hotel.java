@@ -2,6 +2,10 @@ package com.hotelbooking.hotel.domain;
 
 import java.time.LocalDateTime;
 
+import com.hotelbooking.hotel.enums.City;
+import com.hotelbooking.hotel.enums.HotelStatus;
+import com.hotelbooking.hotel.enums.Hotel_Category;
+import com.hotelbooking.hotel.enums.State;
 
 import jakarta.persistence.*;
 import jakarta.validation.constraints.Email;
@@ -45,11 +49,10 @@ public class Hotel {
     private City city;
 
     @NotBlank
-    @Column(nullable = false, length = 300)
     private String address;
     
-    @NotBlank
-    @Column(nullable = false, length = 20)
+    @Enumerated(EnumType.STRING)
+    @Column(nullable = false)
     private State state;
     
     @NotBlank

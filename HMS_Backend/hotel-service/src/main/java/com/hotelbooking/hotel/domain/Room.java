@@ -3,8 +3,8 @@ package com.hotelbooking.hotel.domain;
 import java.math.BigDecimal;
 import java.time.LocalDateTime;
 
-import com.hotelbooking.hotel.domain.RoomStatus;
-import com.hotelbooking.hotel.domain.RoomCategory;
+import com.hotelbooking.hotel.enums.RoomCategory;
+import com.hotelbooking.hotel.enums.RoomStatus;
 
 import jakarta.persistence.*;
 import lombok.*;

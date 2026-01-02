@@ -8,9 +8,9 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import com.hotelbooking.hotel.domain.Room;
-import com.hotelbooking.hotel.domain.RoomStatus;
 import com.hotelbooking.hotel.dto.request.CreateRoomRequest;
 import com.hotelbooking.hotel.dto.response.RoomResponse;
+import com.hotelbooking.hotel.enums.RoomStatus;
 import com.hotelbooking.hotel.repository.RoomRepository;
 import com.hotelbooking.hotel.service.RoomService;
 import com.hotelbooking.hotel.util.RoomAvailabilityGenerator;

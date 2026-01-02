@@ -3,11 +3,11 @@ package com.hotelbooking.hotel.service;
 import java.time.LocalDate;
 import java.util.List;
 
-import com.hotelbooking.hotel.domain.City;
-import com.hotelbooking.hotel.domain.Hotel_Category;
 import com.hotelbooking.hotel.dto.request.CreateHotelRequest;
 import com.hotelbooking.hotel.dto.response.HotelDetailResponse;
 import com.hotelbooking.hotel.dto.response.HotelSearchResponse;
+import com.hotelbooking.hotel.enums.City;
+import com.hotelbooking.hotel.enums.Hotel_Category;
 
 public interface HotelService {
 

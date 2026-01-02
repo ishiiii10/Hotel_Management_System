@@ -1,4 +1,4 @@
-package com.hotelbooking.hotel.domain;
+package com.hotelbooking.hotel.enums;
 
 
 

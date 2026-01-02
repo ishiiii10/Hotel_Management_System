@@ -11,7 +11,7 @@ import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
 
 import com.hotelbooking.hotel.domain.RoomAvailability;
-import com.hotelbooking.hotel.domain.AvailabilityStatus;
+import com.hotelbooking.hotel.enums.AvailabilityStatus;
 
 public interface RoomAvailabilityRepository
         extends JpaRepository<RoomAvailability, Long> {

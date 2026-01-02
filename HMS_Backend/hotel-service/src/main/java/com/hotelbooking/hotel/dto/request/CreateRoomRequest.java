@@ -4,8 +4,8 @@ package com.hotelbooking.hotel.dto.request;
 
 import java.math.BigDecimal;
 
-import com.hotelbooking.hotel.domain.RoomStatus;
-import com.hotelbooking.hotel.domain.RoomCategory;
+import com.hotelbooking.hotel.enums.RoomCategory;
+import com.hotelbooking.hotel.enums.RoomStatus;
 
 import jakarta.validation.constraints.*;
 import lombok.Getter;

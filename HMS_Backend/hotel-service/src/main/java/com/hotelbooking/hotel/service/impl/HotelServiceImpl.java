@@ -9,13 +9,13 @@ import java.util.Objects;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
-import com.hotelbooking.hotel.domain.City;
 import com.hotelbooking.hotel.domain.Hotel;
-import com.hotelbooking.hotel.domain.HotelStatus;
-import com.hotelbooking.hotel.domain.Hotel_Category;
 import com.hotelbooking.hotel.dto.request.CreateHotelRequest;
 import com.hotelbooking.hotel.dto.response.HotelDetailResponse;
 import com.hotelbooking.hotel.dto.response.HotelSearchResponse;
+import com.hotelbooking.hotel.enums.City;
+import com.hotelbooking.hotel.enums.HotelStatus;
+import com.hotelbooking.hotel.enums.Hotel_Category;
 import com.hotelbooking.hotel.repository.HotelRepository;
 
 import com.hotelbooking.hotel.service.HotelService;
@@ -36,6 +36,7 @@ public class HotelServiceImpl implements HotelService {
 
         Hotel hotel = Hotel.builder()
                 .name(request.getName())
+                .category(request.getCategory())
                 .description(request.getDescription())
                 .address(request.getAddress())
                 .city(request.getCity())          // enum
@@ -44,7 +45,6 @@ public class HotelServiceImpl implements HotelService {
                 .pincode(request.getPincode())
                 .contactNumber(request.getContactNumber())
                 .email(request.getEmail())
-                .category(request.getCategory()) // enum
                 .starRating(request.getStarRating())
                 .amenities(request.getAmenities())
                 .status(request.getStatus())
@@ -63,6 +63,7 @@ public class HotelServiceImpl implements HotelService {
                 .orElseThrow(() -> new IllegalStateException("Hotel not found"));
 
         hotel.setName(request.getName());
+        hotel.setCategory(request.getCategory());
         hotel.setDescription(request.getDescription());
         hotel.setAddress(request.getAddress());
         hotel.setCity(request.getCity());
@@ -71,7 +72,7 @@ public class HotelServiceImpl implements HotelService {
         hotel.setPincode(request.getPincode());
         hotel.setContactNumber(request.getContactNumber());
         hotel.setEmail(request.getEmail());
-        hotel.setCategory(request.getCategory());
+        
         hotel.setStarRating(request.getStarRating());
         hotel.setAmenities(request.getAmenities());
         hotel.setStatus(request.getStatus());
@@ -207,7 +208,7 @@ public class HotelServiceImpl implements HotelService {
     public List<HotelSearchResponse> searchHotelsByCategory(Hotel_Category category) {
 
         return hotelRepository
-                .findByHotelCategoryAndStatus(category, HotelStatus.ACTIVE)
+                .findByCategoryAndStatus(category, HotelStatus.ACTIVE)
                 .stream()
                 .map(hotel -> new HotelSearchResponse(
                         hotel.getId(),

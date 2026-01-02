@@ -3,8 +3,8 @@ package com.hotelbooking.hotel.dto.response;
 
 import java.math.BigDecimal;
 
-import com.hotelbooking.hotel.domain.RoomStatus;
-import com.hotelbooking.hotel.domain.RoomCategory;
+import com.hotelbooking.hotel.enums.RoomCategory;
+import com.hotelbooking.hotel.enums.RoomStatus;
 
 import lombok.AllArgsConstructor;
 import lombok.Getter;
