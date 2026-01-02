@@ -1,0 +1,19 @@
+package com.hotelbooking.hotel.repository;
+
+
+
+import java.util.List;
+import java.util.Optional;
+
+import org.springframework.data.jpa.repository.JpaRepository;
+
+import com.hotelbooking.hotel.domain.Room;
+
+public interface RoomRepository extends JpaRepository<Room, Long> {
+
+    boolean existsByHotelIdAndRoomNumber(Long hotelId, String roomNumber);
+
+    List<Room> findByHotelId(Long hotelId);
+
+    Optional<Room> findByIdAndHotelId(Long id, Long hotelId);
+}
