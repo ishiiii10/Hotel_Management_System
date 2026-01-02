@@ -2,7 +2,9 @@ package com.hotelbooking.hotel.service.impl;
 
 
 
+import java.time.LocalDate;
 import java.util.List;
+import java.util.Objects;
 
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -11,11 +13,13 @@ import com.hotelbooking.hotel.domain.City;
 import com.hotelbooking.hotel.domain.Hotel;
 import com.hotelbooking.hotel.domain.HotelStatus;
 import com.hotelbooking.hotel.domain.Hotel_Category;
-import com.hotelbooking.hotel.dto.CreateHotelRequest;
-import com.hotelbooking.hotel.dto.HotelDetailResponse;
-import com.hotelbooking.hotel.dto.HotelSearchResponse;
+import com.hotelbooking.hotel.dto.request.CreateHotelRequest;
+import com.hotelbooking.hotel.dto.response.HotelDetailResponse;
+import com.hotelbooking.hotel.dto.response.HotelSearchResponse;
 import com.hotelbooking.hotel.repository.HotelRepository;
+
 import com.hotelbooking.hotel.service.HotelService;
+import com.hotelbooking.hotel.service.RoomAvailabilityService;
 
 import lombok.RequiredArgsConstructor;
 
@@ -25,6 +29,7 @@ import lombok.RequiredArgsConstructor;
 public class HotelServiceImpl implements HotelService {
 
     private final HotelRepository hotelRepository;
+    private final RoomAvailabilityService availabilityService;
 
     @Override
     public Long createHotel(CreateHotelRequest request) {
@@ -108,32 +113,65 @@ public class HotelServiceImpl implements HotelService {
 
     @Override
     @Transactional(readOnly = true)
-    public List<HotelSearchResponse> searchHotelsByCity(City city) {
+    public List<HotelSearchResponse> searchHotels(
+            City city,
+            LocalDate checkIn,
+            LocalDate checkOut,
+            Hotel_Category category
+    ) {
 
-        return hotelRepository
-                .findByCityIgnoreCaseAndStatus(city, HotelStatus.ACTIVE)
-                .stream()
-                .map(h -> new HotelSearchResponse(
-                        h.getId(),
-                        h.getName(),
-                        h.getCategory(),
-                        h.getDescription(),
-                        h.getAddress(),
-                        h.getCity(),
-                        h.getState(),
-                        h.getCountry(),
-                        h.getPincode(),
-                        h.getContactNumber(),
-                        h.getEmail(),
-                        h.getStarRating(),
-                        h.getAmenities(),
-                        h.getImageUrl(),
-                        h.getStatus(),
-                        h.getTotalRooms(),
-                        h.getAvailableRooms()
-                ))
+        List<Hotel> hotels = (category != null)
+                ? hotelRepository.findByCityAndCategoryAndStatus(
+                        city, category, HotelStatus.ACTIVE)
+                : hotelRepository.findByCityAndStatus(
+                        city, HotelStatus.ACTIVE);
+
+        return hotels.stream()
+                .map(hotel -> {
+
+                    int availableRooms;
+
+                    if (checkIn != null && checkOut != null) {
+                        availableRooms =
+                                availabilityService
+                                        .searchAvailability(
+                                                hotel.getId(),
+                                                checkIn,
+                                                checkOut
+                                        )
+                                        .getAvailableRooms();
+                    } else {
+                        availableRooms = hotel.getAvailableRooms();
+                    }
+
+                    if (availableRooms == 0) {
+                        return null;
+                    }
+
+                    return new HotelSearchResponse(
+                            hotel.getId(),
+                            hotel.getName(),
+                            hotel.getCategory(),
+                            hotel.getDescription(),
+                            hotel.getAddress(),
+                            hotel.getCity(),
+                            hotel.getState(),
+                            hotel.getCountry(),
+                            hotel.getPincode(),
+                            hotel.getContactNumber(),
+                            hotel.getEmail(),
+                            hotel.getStarRating(),
+                            hotel.getAmenities(),
+                            hotel.getImageUrl(),
+                            hotel.getStatus(),
+                            hotel.getTotalRooms(),
+                            availableRooms
+                    );
+                })
+                .filter(Objects::nonNull)
                 .toList();
     }
+
 
     @Override
     @Transactional(readOnly = true)
@@ -192,6 +230,11 @@ public class HotelServiceImpl implements HotelService {
                 ))
                 .toList();
     }
-	
-	
-}
+
+	@Override
+	public List<HotelSearchResponse> searchHotelsByCity(City city) {
+		// TODO Auto-generated method stub
+		return null;
+	}
+    
+    }

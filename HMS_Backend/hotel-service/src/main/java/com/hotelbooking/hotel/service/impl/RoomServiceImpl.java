@@ -9,10 +9,11 @@ import org.springframework.transaction.annotation.Transactional;
 
 import com.hotelbooking.hotel.domain.Room;
 import com.hotelbooking.hotel.domain.RoomStatus;
-import com.hotelbooking.hotel.dto.CreateRoomRequest;
-import com.hotelbooking.hotel.dto.RoomResponse;
+import com.hotelbooking.hotel.dto.request.CreateRoomRequest;
+import com.hotelbooking.hotel.dto.response.RoomResponse;
 import com.hotelbooking.hotel.repository.RoomRepository;
 import com.hotelbooking.hotel.service.RoomService;
+import com.hotelbooking.hotel.util.RoomAvailabilityGenerator;
 
 import lombok.RequiredArgsConstructor;
 
@@ -22,6 +23,8 @@ import lombok.RequiredArgsConstructor;
 public class RoomServiceImpl implements RoomService {
 
     private final RoomRepository roomRepository;
+    private final RoomAvailabilityGenerator availabilityGenerator;
+
 
     @Override
     public Long createRoom(CreateRoomRequest request) {
@@ -50,7 +53,15 @@ public class RoomServiceImpl implements RoomService {
                 .isActive(request.getIsActive())
                 .build();
 
-        return roomRepository.save(room).getId();
+        Room savedRoom = roomRepository.save(room);
+
+        // AUTO-GENERATE AVAILABILITY
+        availabilityGenerator.generateForRoom(
+                savedRoom.getHotelId(),
+                savedRoom.getId()
+        );
+
+        return savedRoom.getId();
     }
 
     @Override

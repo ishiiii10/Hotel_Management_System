@@ -1,4 +1,4 @@
-package com.hotelbooking.hotel.dto;
+package com.hotelbooking.hotel.dto.request;
 
 
 

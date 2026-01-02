@@ -1,18 +1,19 @@
-package com.hotelbooking.hotel.dto;
+package com.hotelbooking.hotel.dto.response;
 
 
+import java.time.LocalDateTime;
 
 import com.hotelbooking.hotel.domain.City;
+import com.hotelbooking.hotel.domain.State;
 import com.hotelbooking.hotel.domain.HotelStatus;
 import com.hotelbooking.hotel.domain.Hotel_Category;
 
-import com.hotelbooking.hotel.domain.State;
 import lombok.AllArgsConstructor;
 import lombok.Getter;
 
 @Getter
 @AllArgsConstructor
-public class HotelSearchResponse {
+public class HotelDetailResponse {
 
     private Long id;
     private String name;
@@ -27,8 +28,9 @@ public class HotelSearchResponse {
     private String email;
     private Integer starRating;
     private String amenities;
-    private String imageUrl;
     private HotelStatus status;
     private Integer totalRooms;
     private Integer availableRooms;
+    private LocalDateTime createdAt;
+    private LocalDateTime updatedAt;
 }

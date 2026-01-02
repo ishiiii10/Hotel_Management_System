@@ -13,8 +13,15 @@ import com.hotelbooking.hotel.domain.Hotel_Category;
 public interface HotelRepository extends JpaRepository<Hotel, Long> {
 
     List<Hotel> findByCity(City city);
+    
+    List<Hotel> findByCityAndStatus(City city, HotelStatus status);
 
-    List<Hotel> findByCityIgnoreCaseAndStatus(City city, HotelStatus status);
+    List<Hotel> findByCityAndCategoryAndStatus(
+            City city,
+            Hotel_Category category,
+            HotelStatus status
+    );
+
 
 	Optional<Hotel> findByHotelCategoryAndStatus(Hotel_Category category, HotelStatus active);
     
