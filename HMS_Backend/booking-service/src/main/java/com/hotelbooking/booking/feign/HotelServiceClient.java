@@ -9,13 +9,13 @@ import org.springframework.web.bind.annotation.PathVariable;
 import com.hotelbooking.booking.dto.response.HotelDetailResponse;
 import com.hotelbooking.booking.dto.response.RoomResponse;
 
-@FeignClient(name = "HOTEL-SERVICE", path = "/hotels")
+@FeignClient(name = "HOTEL-SERVICE", path = "/internal/hotels")
 public interface HotelServiceClient {
 
     @GetMapping("/{hotelId}")
     HotelDetailResponse getHotelById(@PathVariable Long hotelId);
 
-    @GetMapping("/rooms/hotel/{hotelId}")
+    @GetMapping("/{hotelId}/rooms")
     List<RoomResponse> getRoomsByHotel(@PathVariable Long hotelId);
 
     @GetMapping("/rooms/{roomId}")

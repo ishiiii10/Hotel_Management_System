@@ -63,7 +63,11 @@ public class BookingService {
         
         // Step 3c: Filter available rooms
         List<AvailableRoom> availableRooms = allRooms.stream()
-                .filter(room -> room.getIsActive() && "AVAILABLE".equals(room.getStatus()))
+                .filter(room -> room.getIsActive() != null && room.getIsActive())
+                .filter(room -> {
+                    String status = room.getStatus();
+                    return status != null && "AVAILABLE".equalsIgnoreCase(status);
+                })
                 .filter(room -> !bookedRoomIds.contains(room.getId()))
                 .map(room -> new AvailableRoom(
                         room.getId(),
@@ -94,7 +98,8 @@ public class BookingService {
                                         String guestEmail, String guestPhone) {
         // Validate hotel exists and is active
         HotelDetailResponse hotel = hotelServiceClient.getHotelById(request.getHotelId());
-        if (!"ACTIVE".equals(hotel.getStatus())) {
+        String hotelStatus = hotel.getStatus();
+        if (hotelStatus == null || !"ACTIVE".equalsIgnoreCase(hotelStatus)) {
             throw new IllegalStateException("Hotel is not active");
         }
 
@@ -103,7 +108,11 @@ public class BookingService {
         if (!room.getHotelId().equals(request.getHotelId())) {
             throw new IllegalStateException("Room does not belong to the specified hotel");
         }
-        if (!room.getIsActive() || !"AVAILABLE".equals(room.getStatus())) {
+        if (room.getIsActive() == null || !room.getIsActive()) {
+            throw new IllegalStateException("Room is not active");
+        }
+        String roomStatus = room.getStatus();
+        if (roomStatus == null || !"AVAILABLE".equalsIgnoreCase(roomStatus)) {
             throw new IllegalStateException("Room is not available");
         }
 
