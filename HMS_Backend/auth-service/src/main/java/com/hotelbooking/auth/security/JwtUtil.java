@@ -36,6 +36,8 @@ public class JwtUtil {
                 .subject(user.getEmail())
                 .claim("role", user.getRole().name())
                 .claim("userId", user.getId())
+                .claim("username", user.getUsername())
+                .claim("publicUserId", user.getPublicUserId())
                 .issuedAt(new Date())
                 .expiration(
                         Date.from(

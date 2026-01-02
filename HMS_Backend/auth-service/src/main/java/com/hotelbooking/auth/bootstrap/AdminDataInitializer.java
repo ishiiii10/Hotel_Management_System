@@ -26,6 +26,7 @@ public class AdminDataInitializer implements CommandLineRunner {
 
             User admin = User.builder()
                     .email(adminProps.getEmail())
+                    .username("admin") // Default admin username
                     .password(passwordEncoder.encode(adminProps.getPassword())) // hash in service if possible
                     .fullName(adminProps.getFullName())
                     .role(Role.ADMIN)

@@ -6,6 +6,7 @@ import java.util.Map;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
+import com.hotelbooking.auth.domain.Role;
 import com.hotelbooking.auth.domain.User;
 import com.hotelbooking.auth.dto.AdminUserResponse;
 import com.hotelbooking.auth.dto.StaffCreateRequest;
@@ -23,16 +24,29 @@ public class AdminController {
 
     private final UserService userService;
 
-    /* Create staff */
+    /* Create staff - Called by Hotel Service via Feign */
     @PostMapping("/staff")
     public ResponseEntity<Map<String, String>> createStaff(
             @Valid @RequestBody StaffCreateRequest request
     ) {
+        // Validate role
+        Role role;
+        try {
+            role = Role.valueOf(request.getRole().toUpperCase());
+        } catch (IllegalArgumentException e) {
+            throw new IllegalArgumentException("Invalid role: " + request.getRole() + ". Must be MANAGER or RECEPTIONIST");
+        }
+        
+        if (role != Role.MANAGER && role != Role.RECEPTIONIST) {
+            throw new IllegalArgumentException("Only MANAGER or RECEPTIONIST can be created");
+        }
+
         User user = User.builder()
                 .fullName(request.getFullName())
+                .username(request.getUsername())
                 .email(request.getEmail())
                 .password(request.getPassword())
-                .role(request.getRole())
+                .role(role)
                 .build();
 
         String token = userService.createStaffUser(user, request.getHotelId());

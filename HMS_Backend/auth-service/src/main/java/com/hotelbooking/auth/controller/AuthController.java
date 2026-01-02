@@ -42,6 +42,7 @@ public class AuthController {
     ) {
         User user = User.builder()
                 .fullName(request.getFullName())
+                .username(request.getUsername())
                 .email(request.getEmail())
                 .password(request.getPassword())
                 .role(Role.GUEST)
@@ -52,6 +53,7 @@ public class AuthController {
         UserResponse response = new UserResponse(
                 saved.getId(),
                 saved.getPublicUserId(),
+                saved.getUsername(),
                 saved.getFullName(),
                 saved.getEmail(),
                 saved.getRole(),
@@ -81,6 +83,8 @@ public class AuthController {
         return ResponseEntity.ok(
                 new LoginResponse(
                         token,
+                        user.getId(),
+                        user.getUsername(),
                         user.getEmail(),
                         user.getRole(),
                         hotelId
@@ -96,8 +100,9 @@ public class AuthController {
         return ResponseEntity.ok(
                 new UserResponse(
                         user.getId(),
-                        user.getFullName(),
                         user.getPublicUserId(),
+                        user.getUsername(),
+                        user.getFullName(),
                         user.getEmail(),
                         user.getRole(),
                         user.isEnabled()

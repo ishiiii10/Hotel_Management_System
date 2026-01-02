@@ -10,6 +10,7 @@ import org.springframework.data.jpa.repository.JpaRepository;
 import com.hotelbooking.hotel.domain.Room;
 
 public interface RoomRepository extends JpaRepository<Room, Long> {
+    long countByHotelId(Long hotelId);
 
     boolean existsByHotelIdAndRoomNumber(Long hotelId, String roomNumber);
     

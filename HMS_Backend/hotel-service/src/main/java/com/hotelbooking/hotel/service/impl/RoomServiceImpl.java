@@ -2,15 +2,19 @@ package com.hotelbooking.hotel.service.impl;
 
 
 
+import java.time.LocalDate;
 import java.util.List;
 
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import com.hotelbooking.hotel.domain.Room;
+import com.hotelbooking.hotel.domain.RoomAvailability;
 import com.hotelbooking.hotel.dto.request.CreateRoomRequest;
 import com.hotelbooking.hotel.dto.response.RoomResponse;
+import com.hotelbooking.hotel.enums.AvailabilityStatus;
 import com.hotelbooking.hotel.enums.RoomStatus;
+import com.hotelbooking.hotel.repository.RoomAvailabilityRepository;
 import com.hotelbooking.hotel.repository.RoomRepository;
 import com.hotelbooking.hotel.service.RoomService;
 import com.hotelbooking.hotel.util.RoomAvailabilityGenerator;
@@ -24,6 +28,7 @@ public class RoomServiceImpl implements RoomService {
 
     private final RoomRepository roomRepository;
     private final RoomAvailabilityGenerator availabilityGenerator;
+    private final RoomAvailabilityRepository availabilityRepository;
 
 
     @Override
@@ -121,22 +126,46 @@ public class RoomServiceImpl implements RoomService {
 
     @Override
     public void updateRoomStatus(Long roomId, RoomStatus status) {
-
         Room room = roomRepository.findById(roomId)
                 .orElseThrow(() -> new IllegalStateException("Room not found"));
-
         room.setStatus(status);
         roomRepository.save(room);
+
+        // Update RoomAvailability for future dates
+        updateAvailabilityForRoomStatus(room, status, room.getIsActive());
     }
 
     @Override
     public void updateRoomActiveStatus(Long roomId, boolean isActive) {
-
         Room room = roomRepository.findById(roomId)
                 .orElseThrow(() -> new IllegalStateException("Room not found"));
-
         room.setIsActive(isActive);
         roomRepository.save(room);
+
+        // Update RoomAvailability for future dates
+        updateAvailabilityForRoomStatus(room, room.getStatus(), isActive);
+    }
+
+    private void updateAvailabilityForRoomStatus(Room room, RoomStatus status, boolean isActive) {
+        // Only update for future dates
+        LocalDate today = LocalDate.now();
+        List<RoomAvailability> futureAvailabilities = availabilityRepository.findByRoomIdAndDateBetween(
+                room.getId(), today, today.plusYears(2)); // Adjust range as needed
+        AvailabilityStatus newStatus;
+        if (!isActive || status == RoomStatus.INACTIVE || status == RoomStatus.MAINTENANCE || status == RoomStatus.OUT_OF_SERVICE) {
+            newStatus = AvailabilityStatus.UNAVAILABLE;
+        } else if (status == RoomStatus.AVAILABLE && isActive) {
+            newStatus = AvailabilityStatus.AVAILABLE;
+        } else {
+            return; // No change
+        }
+        for (RoomAvailability availability : futureAvailabilities) {
+            if (availability.getStatus() != AvailabilityStatus.RESERVED && availability.getStatus() != AvailabilityStatus.BLOCKED) {
+                availability.setStatus(newStatus);
+                availability.setSource("SYSTEM: status sync");
+                availabilityRepository.save(availability);
+            }
+        }
     }
 
     private RoomResponse toDto(Room room) {

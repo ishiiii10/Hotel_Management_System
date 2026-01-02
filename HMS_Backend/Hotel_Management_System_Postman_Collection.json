@@ -1,0 +1,689 @@
+{
+	"info": {
+		"_postman_id": "hotel-management-system-api",
+		"name": "Hotel Management System API",
+		"description": "Complete API collection for Auth Service and Hotel Service",
+		"schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+	},
+	"item": [
+		{
+			"name": "Auth Service",
+			"item": [
+				{
+					"name": "Guest Registration",
+					"request": {
+						"method": "POST",
+						"header": [],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n    \"fullName\": \"John Doe\",\n    \"username\": \"johndoe\",\n    \"email\": \"john.doe@example.com\",\n    \"password\": \"password123\"\n}",
+							"options": {
+								"raw": {
+									"language": "json"
+								}
+							}
+						},
+						"url": {
+							"raw": "{{base_url}}/auth/register/guest",
+							"host": ["{{base_url}}"],
+							"path": ["auth", "register", "guest"]
+						}
+					}
+				},
+				{
+					"name": "Login",
+					"request": {
+						"method": "POST",
+						"header": [],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n    \"email\": \"admin@hotelbooking.com\",\n    \"password\": \"admin123\"\n}",
+							"options": {
+								"raw": {
+									"language": "json"
+								}
+							}
+						},
+						"url": {
+							"raw": "{{base_url}}/auth/login",
+							"host": ["{{base_url}}"],
+							"path": ["auth", "login"]
+						}
+					}
+				},
+				{
+					"name": "Activate User",
+					"request": {
+						"method": "POST",
+						"header": [],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n    \"token\": \"<activation_token_from_staff_creation>\"\n}",
+							"options": {
+								"raw": {
+									"language": "json"
+								}
+							}
+						},
+						"url": {
+							"raw": "{{base_url}}/auth/activate",
+							"host": ["{{base_url}}"],
+							"path": ["auth", "activate"]
+						}
+					}
+				},
+				{
+					"name": "Get Current User",
+					"request": {
+						"method": "GET",
+						"header": [
+							{
+								"key": "Authorization",
+								"value": "Bearer {{auth_token}}",
+								"type": "text"
+							}
+						],
+						"url": {
+							"raw": "{{base_url}}/auth/me",
+							"host": ["{{base_url}}"],
+							"path": ["auth", "me"]
+						}
+					}
+				},
+				{
+					"name": "Change Password",
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Authorization",
+								"value": "Bearer {{auth_token}}",
+								"type": "text"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n    \"currentPassword\": \"oldpassword123\",\n    \"newPassword\": \"newpassword456\"\n}",
+							"options": {
+								"raw": {
+									"language": "json"
+								}
+							}
+						},
+						"url": {
+							"raw": "{{base_url}}/auth/change-password",
+							"host": ["{{base_url}}"],
+							"path": ["auth", "change-password"]
+						}
+					}
+				},
+				{
+					"name": "Admin - List All Users",
+					"request": {
+						"method": "GET",
+						"header": [
+							{
+								"key": "Authorization",
+								"value": "Bearer {{admin_token}}",
+								"type": "text"
+							}
+						],
+						"url": {
+							"raw": "{{base_url}}/auth/admin/users",
+							"host": ["{{base_url}}"],
+							"path": ["auth", "admin", "users"]
+						}
+					}
+				},
+				{
+					"name": "Admin - Deactivate User",
+					"request": {
+						"method": "PATCH",
+						"header": [
+							{
+								"key": "Authorization",
+								"value": "Bearer {{admin_token}}",
+								"type": "text"
+							}
+						],
+						"url": {
+							"raw": "{{base_url}}/auth/admin/users/:userId/deactivate",
+							"host": ["{{base_url}}"],
+							"path": ["auth", "admin", "users", ":userId", "deactivate"],
+							"variable": [
+								{
+									"key": "userId",
+									"value": "1"
+								}
+							]
+						}
+					}
+				},
+				{
+					"name": "Admin - Reassign Staff to Hotel",
+					"request": {
+						"method": "PUT",
+						"header": [
+							{
+								"key": "Authorization",
+								"value": "Bearer {{admin_token}}",
+								"type": "text"
+							}
+						],
+						"url": {
+							"raw": "{{base_url}}/auth/admin/staff/:userId/hotel-allotment?hotelId=1",
+							"host": ["{{base_url}}"],
+							"path": ["auth", "admin", "staff", ":userId", "hotel-allotment"],
+							"query": [
+								{
+									"key": "hotelId",
+									"value": "1"
+								}
+							],
+							"variable": [
+								{
+									"key": "userId",
+									"value": "2"
+								}
+							]
+						}
+					}
+				}
+			]
+		},
+		{
+			"name": "Hotel Service",
+			"item": [
+				{
+					"name": "Hotels",
+					"item": [
+						{
+							"name": "Create Hotel (ADMIN only)",
+							"request": {
+								"method": "POST",
+								"header": [
+									{
+										"key": "Authorization",
+										"value": "Bearer {{admin_token}}",
+										"type": "text"
+									}
+								],
+								"body": {
+									"mode": "raw",
+									"raw": "{\n    \"name\": \"Grand Hotel\",\n    \"category\": \"LUXURY\",\n    \"description\": \"A luxurious 5-star hotel in the heart of the city\",\n    \"city\": \"MUMBAI\",\n    \"address\": \"123 Main Street\",\n    \"state\": \"MAHARASHTRA\",\n    \"country\": \"India\",\n    \"pincode\": \"400001\",\n    \"contactNumber\": \"+91-22-12345678\",\n    \"email\": \"info@grandhotel.com\",\n    \"starRating\": 5,\n    \"amenities\": \"WiFi, Pool, Gym, Spa, Restaurant, Bar\",\n    \"status\": \"ACTIVE\",\n    \"imageUrl\": \"https://example.com/hotel-image.jpg\"\n}",
+									"options": {
+										"raw": {
+											"language": "json"
+										}
+									}
+								},
+								"url": {
+									"raw": "{{base_url}}/hotels",
+									"host": ["{{base_url}}"],
+									"path": ["hotels"]
+								}
+							}
+						},
+						{
+							"name": "Update Hotel (ADMIN/MANAGER)",
+							"request": {
+								"method": "PUT",
+								"header": [
+									{
+										"key": "Authorization",
+										"value": "Bearer {{manager_token}}",
+										"type": "text"
+									}
+								],
+								"body": {
+									"mode": "raw",
+									"raw": "{\n    \"name\": \"Grand Hotel Updated\",\n    \"category\": \"LUXURY\",\n    \"description\": \"Updated description\",\n    \"city\": \"MUMBAI\",\n    \"address\": \"123 Main Street\",\n    \"state\": \"MAHARASHTRA\",\n    \"country\": \"India\",\n    \"pincode\": \"400001\",\n    \"contactNumber\": \"+91-22-12345678\",\n    \"email\": \"info@grandhotel.com\",\n    \"starRating\": 5,\n    \"amenities\": \"WiFi, Pool, Gym, Spa, Restaurant, Bar, Parking\",\n    \"status\": \"ACTIVE\",\n    \"imageUrl\": \"https://example.com/hotel-image-updated.jpg\"\n}",
+									"options": {
+										"raw": {
+											"language": "json"
+										}
+									}
+								},
+								"url": {
+									"raw": "{{base_url}}/hotels/:hotelId",
+									"host": ["{{base_url}}"],
+									"path": ["hotels", ":hotelId"],
+									"variable": [
+										{
+											"key": "hotelId",
+											"value": "1"
+										}
+									]
+								}
+							}
+						},
+						{
+							"name": "Get Hotel by ID",
+							"request": {
+								"method": "GET",
+								"header": [],
+								"url": {
+									"raw": "{{base_url}}/hotels/:hotelId",
+									"host": ["{{base_url}}"],
+									"path": ["hotels", ":hotelId"],
+									"variable": [
+										{
+											"key": "hotelId",
+											"value": "1"
+										}
+									]
+								}
+							}
+						},
+						{
+							"name": "Get My Hotel (Staff)",
+							"request": {
+								"method": "GET",
+								"header": [
+									{
+										"key": "Authorization",
+										"value": "Bearer {{manager_token}}",
+										"type": "text"
+									}
+								],
+								"url": {
+									"raw": "{{base_url}}/hotels/my-hotel",
+									"host": ["{{base_url}}"],
+									"path": ["hotels", "my-hotel"]
+								}
+							}
+						},
+						{
+							"name": "Get All Hotels (ADMIN only)",
+							"request": {
+								"method": "GET",
+								"header": [
+									{
+										"key": "Authorization",
+										"value": "Bearer {{admin_token}}",
+										"type": "text"
+									}
+								],
+								"url": {
+									"raw": "{{base_url}}/hotels",
+									"host": ["{{base_url}}"],
+									"path": ["hotels"]
+								}
+							}
+						},
+						{
+							"name": "Search Hotels by City",
+							"request": {
+								"method": "GET",
+								"header": [],
+								"url": {
+									"raw": "{{base_url}}/hotels/search?city=MUMBAI",
+									"host": ["{{base_url}}"],
+									"path": ["hotels", "search"],
+									"query": [
+										{
+											"key": "city",
+											"value": "MUMBAI"
+										}
+									]
+								}
+							}
+						},
+						{
+							"name": "Search Hotels by Category",
+							"request": {
+								"method": "GET",
+								"header": [],
+								"url": {
+									"raw": "{{base_url}}/hotels/search?category=LUXURY",
+									"host": ["{{base_url}}"],
+									"path": ["hotels", "search"],
+									"query": [
+										{
+											"key": "category",
+											"value": "LUXURY"
+										}
+									]
+								}
+							}
+						},
+						{
+							"name": "Create Staff for Hotel (ADMIN only)",
+							"request": {
+								"method": "POST",
+								"header": [
+									{
+										"key": "Authorization",
+										"value": "Bearer {{admin_token}}",
+										"type": "text"
+									}
+								],
+								"body": {
+									"mode": "raw",
+									"raw": "{\n    \"fullName\": \"Jane Manager\",\n    \"username\": \"janemanager\",\n    \"email\": \"jane.manager@hotel.com\",\n    \"password\": \"manager123\",\n    \"role\": \"MANAGER\"\n}",
+									"options": {
+										"raw": {
+											"language": "json"
+										}
+									}
+								},
+								"url": {
+									"raw": "{{base_url}}/hotels/:hotelId/staff",
+									"host": ["{{base_url}}"],
+									"path": ["hotels", ":hotelId", "staff"],
+									"variable": [
+										{
+											"key": "hotelId",
+											"value": "1"
+										}
+									]
+								}
+							}
+						}
+					]
+				},
+				{
+					"name": "Rooms",
+					"item": [
+						{
+							"name": "Create Room (ADMIN/MANAGER)",
+							"request": {
+								"method": "POST",
+								"header": [
+									{
+										"key": "Authorization",
+										"value": "Bearer {{manager_token}}",
+										"type": "text"
+									}
+								],
+								"body": {
+									"mode": "raw",
+									"raw": "{\n    \"hotelId\": 1,\n    \"roomNumber\": \"101\",\n    \"roomType\": \"DELUXE\",\n    \"pricePerNight\": 5000.00,\n    \"maxOccupancy\": 2,\n    \"floorNumber\": 1,\n    \"bedType\": \"King Size\",\n    \"roomSize\": 350,\n    \"amenities\": \"WiFi, TV, AC, Mini Bar\",\n    \"description\": \"Spacious deluxe room with city view\",\n    \"status\": \"AVAILABLE\",\n    \"isActive\": true\n}",
+									"options": {
+										"raw": {
+											"language": "json"
+										}
+									}
+								},
+								"url": {
+									"raw": "{{base_url}}/hotels/rooms",
+									"host": ["{{base_url}}"],
+									"path": ["hotels", "rooms"]
+								}
+							}
+						},
+						{
+							"name": "Get Rooms by Hotel",
+							"request": {
+								"method": "GET",
+								"header": [],
+								"url": {
+									"raw": "{{base_url}}/hotels/rooms/hotel/:hotelId",
+									"host": ["{{base_url}}"],
+									"path": ["hotels", "rooms", "hotel", ":hotelId"],
+									"variable": [
+										{
+											"key": "hotelId",
+											"value": "1"
+										}
+									]
+								}
+							}
+						},
+						{
+							"name": "Get Room by ID",
+							"request": {
+								"method": "GET",
+								"header": [],
+								"url": {
+									"raw": "{{base_url}}/hotels/rooms/:roomId",
+									"host": ["{{base_url}}"],
+									"path": ["hotels", "rooms", ":roomId"],
+									"variable": [
+										{
+											"key": "roomId",
+											"value": "1"
+										}
+									]
+								}
+							}
+						},
+						{
+							"name": "Update Room (ADMIN/MANAGER)",
+							"request": {
+								"method": "PUT",
+								"header": [
+									{
+										"key": "Authorization",
+										"value": "Bearer {{manager_token}}",
+										"type": "text"
+									}
+								],
+								"body": {
+									"mode": "raw",
+									"raw": "{\n    \"hotelId\": 1,\n    \"roomNumber\": \"101\",\n    \"roomType\": \"DELUXE\",\n    \"pricePerNight\": 5500.00,\n    \"maxOccupancy\": 3,\n    \"floorNumber\": 1,\n    \"bedType\": \"King Size\",\n    \"roomSize\": 350,\n    \"amenities\": \"WiFi, TV, AC, Mini Bar, Balcony\",\n    \"description\": \"Updated spacious deluxe room with city view\",\n    \"status\": \"AVAILABLE\",\n    \"isActive\": true\n}",
+									"options": {
+										"raw": {
+											"language": "json"
+										}
+									}
+								},
+								"url": {
+									"raw": "{{base_url}}/hotels/rooms/:roomId",
+									"host": ["{{base_url}}"],
+									"path": ["hotels", "rooms", ":roomId"],
+									"variable": [
+										{
+											"key": "roomId",
+											"value": "1"
+										}
+									]
+								}
+							}
+						},
+						{
+							"name": "Update Room Status (ADMIN/MANAGER/RECEPTIONIST)",
+							"request": {
+								"method": "PATCH",
+								"header": [
+									{
+										"key": "Authorization",
+										"value": "Bearer {{receptionist_token}}",
+										"type": "text"
+									}
+								],
+								"url": {
+									"raw": "{{base_url}}/hotels/rooms/:roomId/status?status=MAINTENANCE",
+									"host": ["{{base_url}}"],
+									"path": ["hotels", "rooms", ":roomId", "status"],
+									"query": [
+										{
+											"key": "status",
+											"value": "MAINTENANCE",
+											"description": "Options: AVAILABLE, OCCUPIED, MAINTENANCE, OUT_OF_SERVICE, INACTIVE"
+										}
+									],
+									"variable": [
+										{
+											"key": "roomId",
+											"value": "1"
+										}
+									]
+								}
+							}
+						},
+						{
+							"name": "Update Room Active Status (ADMIN/MANAGER)",
+							"request": {
+								"method": "PATCH",
+								"header": [
+									{
+										"key": "Authorization",
+										"value": "Bearer {{manager_token}}",
+										"type": "text"
+									}
+								],
+								"url": {
+									"raw": "{{base_url}}/hotels/rooms/:roomId/active?active=false",
+									"host": ["{{base_url}}"],
+									"path": ["hotels", "rooms", ":roomId", "active"],
+									"query": [
+										{
+											"key": "active",
+											"value": "false"
+										}
+									],
+									"variable": [
+										{
+											"key": "roomId",
+											"value": "1"
+										}
+									]
+								}
+							}
+						},
+						{
+							"name": "Delete Room (ADMIN/MANAGER)",
+							"request": {
+								"method": "DELETE",
+								"header": [
+									{
+										"key": "Authorization",
+										"value": "Bearer {{manager_token}}",
+										"type": "text"
+									}
+								],
+								"url": {
+									"raw": "{{base_url}}/hotels/rooms/:roomId",
+									"host": ["{{base_url}}"],
+									"path": ["hotels", "rooms", ":roomId"],
+									"variable": [
+										{
+											"key": "roomId",
+											"value": "1"
+										}
+									]
+								}
+							}
+						}
+					]
+				},
+				{
+					"name": "Availability",
+					"item": [
+						{
+							"name": "Search Availability",
+							"request": {
+								"method": "GET",
+								"header": [],
+								"url": {
+									"raw": "{{base_url}}/hotels/availability/search?hotelId=1&checkIn=2024-12-25&checkOut=2024-12-30",
+									"host": ["{{base_url}}"],
+									"path": ["hotels", "availability", "search"],
+									"query": [
+										{
+											"key": "hotelId",
+											"value": "1"
+										},
+										{
+											"key": "checkIn",
+											"value": "2024-12-25",
+											"description": "Format: YYYY-MM-DD"
+										},
+										{
+											"key": "checkOut",
+											"value": "2024-12-30",
+											"description": "Format: YYYY-MM-DD (exclusive)"
+										}
+									]
+								}
+							}
+						},
+						{
+							"name": "Block Room (ADMIN/MANAGER)",
+							"request": {
+								"method": "POST",
+								"header": [
+									{
+										"key": "Authorization",
+										"value": "Bearer {{manager_token}}",
+										"type": "text"
+									}
+								],
+								"body": {
+									"mode": "raw",
+									"raw": "{\n    \"hotelId\": 1,\n    \"roomId\": 1,\n    \"fromDate\": \"2024-12-25\",\n    \"toDate\": \"2024-12-27\",\n    \"reason\": \"Maintenance work\"\n}",
+									"options": {
+										"raw": {
+											"language": "json"
+										}
+									}
+								},
+								"url": {
+									"raw": "{{base_url}}/hotels/availability/block",
+									"host": ["{{base_url}}"],
+									"path": ["hotels", "availability", "block"]
+								}
+							}
+						},
+						{
+							"name": "Unblock Room (ADMIN/MANAGER)",
+							"request": {
+								"method": "POST",
+								"header": [
+									{
+										"key": "Authorization",
+										"value": "Bearer {{manager_token}}",
+										"type": "text"
+									}
+								],
+								"body": {
+									"mode": "raw",
+									"raw": "{\n    \"hotelId\": 1,\n    \"roomId\": 1,\n    \"fromDate\": \"2024-12-25\",\n    \"toDate\": \"2024-12-27\"\n}",
+									"options": {
+										"raw": {
+											"language": "json"
+										}
+									}
+								},
+								"url": {
+									"raw": "{{base_url}}/hotels/availability/unblock",
+									"host": ["{{base_url}}"],
+									"path": ["hotels", "availability", "unblock"]
+								}
+							}
+						}
+					]
+				}
+			]
+		}
+	],
+	"variable": [
+		{
+			"key": "base_url",
+			"value": "http://localhost:9090",
+			"type": "string"
+		},
+		{
+			"key": "auth_token",
+			"value": "",
+			"type": "string"
+		},
+		{
+			"key": "admin_token",
+			"value": "",
+			"type": "string"
+		},
+		{
+			"key": "manager_token",
+			"value": "",
+			"type": "string"
+		},
+		{
+			"key": "receptionist_token",
+			"value": "",
+			"type": "string"
+		}
+	]
+}
+

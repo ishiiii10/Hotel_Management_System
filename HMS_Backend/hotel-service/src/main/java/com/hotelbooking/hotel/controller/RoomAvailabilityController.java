@@ -6,7 +6,13 @@ import java.time.LocalDate;
 import java.util.Map;
 
 import org.springframework.http.ResponseEntity;
-import org.springframework.web.bind.annotation.*;
+import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.PostMapping;
+import org.springframework.web.bind.annotation.RequestBody;
+import org.springframework.web.bind.annotation.RequestHeader;
+import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RequestParam;
+import org.springframework.web.bind.annotation.RestController;
 
 import com.hotelbooking.hotel.dto.request.BlockRoomRequest;
 import com.hotelbooking.hotel.dto.request.UnblockRoomRequest;
@@ -26,12 +32,22 @@ public class RoomAvailabilityController {
     @PostMapping("/block")
     public ResponseEntity<?> blockRoom(
             @RequestHeader("X-User-Role") String role,
+            @RequestHeader(value = "X-Hotel-Id", required = false) Long userHotelId,
             @Valid @RequestBody BlockRoomRequest request
     ) {
-
         if (!role.equalsIgnoreCase("ADMIN")
                 && !role.equalsIgnoreCase("MANAGER")) {
             throw new IllegalStateException("Only ADMIN or MANAGER can block rooms");
+        }
+
+        // Context-aware authorization: MANAGER can only block rooms in their assigned hotel
+        if ("MANAGER".equalsIgnoreCase(role)) {
+            if (userHotelId == null) {
+                throw new IllegalStateException("MANAGER must be assigned to a hotel");
+            }
+            if (!request.getHotelId().equals(userHotelId)) {
+                throw new IllegalStateException("Forbidden: Cannot block room of another hotel");
+            }
         }
 
         availabilityService.blockRoom(request);
@@ -45,9 +61,21 @@ public class RoomAvailabilityController {
     @PostMapping("/unblock")
     public ResponseEntity<?> unblockRoom(
             @RequestHeader("X-User-Role") String role,
+            @RequestHeader(value = "X-Hotel-Id", required = false) Long userHotelId,
             @Valid @RequestBody UnblockRoomRequest request
     ) {
         authorize(role);
+        
+        // Context-aware authorization: MANAGER can only unblock rooms in their assigned hotel
+        if ("MANAGER".equalsIgnoreCase(role)) {
+            if (userHotelId == null) {
+                throw new IllegalStateException("MANAGER must be assigned to a hotel");
+            }
+            if (!request.getHotelId().equals(userHotelId)) {
+                throw new IllegalStateException("Forbidden: Cannot unblock room of another hotel");
+            }
+        }
+        
         availabilityService.unblockRoom(request);
 
         return ResponseEntity.ok(Map.of(

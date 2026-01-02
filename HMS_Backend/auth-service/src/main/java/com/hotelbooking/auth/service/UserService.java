@@ -41,6 +41,7 @@ public class UserService {
         }
 
         ensureEmailNotExists(user.getEmail());
+        ensureUsernameNotExists(user.getUsername());
         user.setPublicUserId(generatePublicUserId(Role.GUEST));
         user.setPassword(passwordEncoder.encode(user.getPassword()));
         user.setEnabled(true);
@@ -56,13 +57,24 @@ public class UserService {
             throw new IllegalArgumentException("Only MANAGER or RECEPTIONIST can be created");
         }
 
+        if (hotelId == null) {
+            throw new IllegalArgumentException("hotelId is required for staff users");
+        }
+
+        if (user.getRole() == Role.ADMIN) {
+            throw new IllegalArgumentException("ADMIN role cannot be assigned to a hotel");
+        }
+
         ensureEmailNotExists(user.getEmail());
+        ensureUsernameNotExists(user.getUsername());
 
         user.setPublicUserId(generatePublicUserId(user.getRole()));
         user.setPassword(passwordEncoder.encode(user.getPassword()));
+        user.setHotelId(hotelId); // Persist hotelId directly in User entity
         user.setEnabled(false);
         User savedUser = userRepository.save(user);
 
+        // Also maintain UserHotelAssignment for backward compatibility
         UserHotelAssignment assignment = UserHotelAssignment.builder()
                 .userId(savedUser.getId())
                 .hotelId(hotelId)
@@ -137,7 +149,14 @@ public class UserService {
     }
     
     public Long getAssignedHotelId(Long userId) {
-
+        User user = userRepository.findById(userId)
+                .orElseThrow(() -> new IllegalStateException("User not found"));
+        
+        // Prefer hotelId from User entity, fallback to UserHotelAssignment for backward compatibility
+        if (user.getHotelId() != null) {
+            return user.getHotelId();
+        }
+        
         return userHotelAssignmentRepository.findOneByUserId(userId)
                 .orElseThrow(() ->
                         new IllegalStateException("Staff user has no hotel assignment")
@@ -178,15 +197,20 @@ public class UserService {
 
                 	Long hotelId = null;
 
-                	if (user.getRole() == Role.MANAGER || user.getRole() == Role.RECEPTIONIST) {
-                	    hotelId = userHotelAssignmentRepository.findOneByUserId(user.getId())
-                	            .map(UserHotelAssignment::getHotelId)
-                	            .orElse(null); // <-- DO NOT THROW
-                	}
+        if (user.getRole() == Role.MANAGER || user.getRole() == Role.RECEPTIONIST) {
+            // Prefer hotelId from User entity, fallback to UserHotelAssignment
+            hotelId = user.getHotelId();
+            if (hotelId == null) {
+                hotelId = userHotelAssignmentRepository.findOneByUserId(user.getId())
+                        .map(UserHotelAssignment::getHotelId)
+                        .orElse(null); // <-- DO NOT THROW
+            }
+        }
 
                     return new AdminUserResponse(
                             user.getId(),
                             user.getPublicUserId(),
+                            user.getUsername(),
                             user.getFullName(),
                             user.getEmail(),
                             user.getRole(),
@@ -225,6 +249,11 @@ public class UserService {
             throw new IllegalStateException("Only staff can be reassigned");
         }
 
+        // Update hotelId in User entity
+        user.setHotelId(hotelId);
+        userRepository.save(user);
+        
+        // Also update UserHotelAssignment for backward compatibility
         UserHotelAssignment assignment =
                 userHotelAssignmentRepository.findOneByUserId(userId)
                         .orElseThrow(() -> new IllegalStateException("Staff has no assignment"));
@@ -238,6 +267,12 @@ public class UserService {
     private void ensureEmailNotExists(String email) {
         if (userRepository.findByEmail(email).isPresent()) {
             throw new IllegalStateException("Email already exists");
+        }
+    }
+    
+    private void ensureUsernameNotExists(String username) {
+        if (userRepository.existsByUsername(username)) {
+            throw new IllegalStateException("Username already exists");
         }
     }
     private String generatePublicUserId(Role role) {

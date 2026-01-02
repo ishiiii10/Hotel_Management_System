@@ -1,4 +1,4 @@
-package com.hotelbooking.auth.dto;
+package com.hotelbooking.hotel.dto.request;
 
 import jakarta.validation.constraints.Email;
 import jakarta.validation.constraints.NotBlank;
@@ -10,7 +10,7 @@ import lombok.Setter;
 
 @Getter
 @Setter
-public class StaffCreateRequest {
+public class CreateStaffRequest {
 
     @NotBlank
     private String fullName;
@@ -36,6 +36,7 @@ public class StaffCreateRequest {
     @Pattern(regexp = "^(MANAGER|RECEPTIONIST)$", message = "Role must be MANAGER or RECEPTIONIST")
     private String role; // MANAGER or RECEPTIONIST
 
-    @NotNull
+    // hotelId is set from path variable, not required in request body
     private Long hotelId;
 }
+

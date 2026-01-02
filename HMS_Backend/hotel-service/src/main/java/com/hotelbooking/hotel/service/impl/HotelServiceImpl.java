@@ -90,9 +90,14 @@ public class HotelServiceImpl implements HotelService {
                 .orElseThrow(() -> new IllegalStateException("Hotel not found"));
 
         int totalRooms =
-                (int) roomRepository.countByHotelIdAndIsActiveTrue(h.getId());
+                (int) roomRepository.countByHotelId(h.getId());
 
-        int availableRooms = totalRooms;
+        int availableRooms = 0;
+        if (totalRooms > 0) {
+            availableRooms = availabilityService
+                    .searchAvailability(h.getId(), LocalDate.now(), LocalDate.now().plusDays(1))
+                    .getAvailableRooms();
+        }
 
         return new HotelDetailResponse(
                 h.getId(),
@@ -196,11 +201,13 @@ public class HotelServiceImpl implements HotelService {
         return hotelRepository.findAll()
                 .stream()
                 .map(h -> {
-
-                    int totalRooms =
-                            (int) roomRepository
-                                    .countByHotelIdAndIsActiveTrue(h.getId());
-
+                    int totalRooms = (int) roomRepository.countByHotelId(h.getId());
+                    int availableRooms = 0;
+                    if (totalRooms > 0) {
+                        availableRooms = availabilityService
+                                .searchAvailability(h.getId(), LocalDate.now(), LocalDate.now().plusDays(1))
+                                .getAvailableRooms();
+                    }
                     return new HotelDetailResponse(
                             h.getId(),
                             h.getName(),
@@ -217,7 +224,7 @@ public class HotelServiceImpl implements HotelService {
                             h.getAmenities(),
                             h.getStatus(),
                             totalRooms,
-                            totalRooms,
+                            availableRooms,
                             h.getCreatedAt(),
                             h.getUpdatedAt()
                     );
@@ -230,20 +237,20 @@ public class HotelServiceImpl implements HotelService {
     @Override
     @Transactional(readOnly = true)
     public List<HotelSearchResponse> searchHotelsByCategory(Hotel_Category category) {
-
         return hotelRepository
                 .findByCategoryAndStatus(category, HotelStatus.ACTIVE)
                 .stream()
                 .map(hotel -> {
-
-                    int totalRooms =
-                            (int) roomRepository
-                                    .countByHotelIdAndIsActiveTrue(hotel.getId());
-
+                    int totalRooms = (int) roomRepository.countByHotelId(hotel.getId());
+                    int availableRooms = 0;
+                    if (totalRooms > 0) {
+                        availableRooms = availabilityService
+                                .searchAvailability(hotel.getId(), LocalDate.now(), LocalDate.now().plusDays(1))
+                                .getAvailableRooms();
+                    }
                     if (totalRooms == 0) {
                         return null;
                     }
-
                     return new HotelSearchResponse(
                             hotel.getId(),
                             hotel.getName(),
@@ -261,7 +268,7 @@ public class HotelServiceImpl implements HotelService {
                             hotel.getImageUrl(),
                             hotel.getStatus(),
                             totalRooms,
-                            totalRooms
+                            availableRooms
                     );
                 })
                 .filter(Objects::nonNull)
@@ -273,20 +280,20 @@ public class HotelServiceImpl implements HotelService {
     @Override
     @Transactional(readOnly = true)
     public List<HotelSearchResponse> searchHotelsByCity(City city) {
-
         return hotelRepository
                 .findByCityAndStatus(city, HotelStatus.ACTIVE)
                 .stream()
                 .map(hotel -> {
-
-                    int totalRooms =
-                            (int) roomRepository
-                                    .countByHotelIdAndIsActiveTrue(hotel.getId());
-
+                    int totalRooms = (int) roomRepository.countByHotelId(hotel.getId());
+                    int availableRooms = 0;
+                    if (totalRooms > 0) {
+                        availableRooms = availabilityService
+                                .searchAvailability(hotel.getId(), LocalDate.now(), LocalDate.now().plusDays(1))
+                                .getAvailableRooms();
+                    }
                     if (totalRooms == 0) {
                         return null;
                     }
-
                     return new HotelSearchResponse(
                             hotel.getId(),
                             hotel.getName(),
@@ -304,7 +311,7 @@ public class HotelServiceImpl implements HotelService {
                             hotel.getImageUrl(),
                             hotel.getStatus(),
                             totalRooms,
-                            totalRooms
+                            availableRooms
                     );
                 })
                 .filter(Objects::nonNull)

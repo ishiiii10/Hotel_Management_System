@@ -29,7 +29,8 @@ import lombok.Setter;
 @Table(
     name = "users",
     uniqueConstraints = {
-        @UniqueConstraint(columnNames = "email")
+        @UniqueConstraint(columnNames = "email"),
+        @UniqueConstraint(columnNames = "username")
     }
 )
 @Getter
@@ -47,6 +48,12 @@ public class User {
     @Size(min = 2, max = 100, message = "Full name must be between 2 and 100 characters")
     @Column(nullable = false, length = 100)
     private String fullName;
+    
+    @NotBlank(message = "Username is required")
+    @Size(min = 3, max = 50, message = "Username must be between 3 and 50 characters")
+    @Pattern(regexp = "^[a-zA-Z0-9_]+$", message = "Username can only contain letters, numbers, and underscores")
+    @Column(nullable = false, unique = true, length = 50)
+    private String username;
     
     @Column( unique = true, updatable = false)
     private String publicUserId;
@@ -73,6 +80,9 @@ public class User {
     @Enumerated(EnumType.STRING)
     @Column(nullable = false)
     private Role role;
+
+    @Column(name = "hotel_id")
+    private Long hotelId; // null for ADMIN & GUEST, required for MANAGER & RECEPTIONIST
 
     @Column(nullable = false)
     private boolean enabled = false;

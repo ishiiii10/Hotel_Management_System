@@ -82,9 +82,11 @@ public class JwtAuthFilter implements GlobalFilter, Ordered {
                     .mutate()
                     .headers(headers -> {
                         headers.remove("X-User-Id");
+                        headers.remove("X-User-Username");
                         headers.remove("X-User-Role");
                         headers.remove("X-User-Email");
                         headers.remove("X-Hotel-Id");
+                        headers.remove("X-User-Hotel-Id");
                     });
 
             // Add trusted headers from JWT
@@ -93,10 +95,18 @@ public class JwtAuthFilter implements GlobalFilter, Ordered {
                     .header("X-User-Role", claims.get("role").toString())
                     .header("X-User-Email", claims.getSubject());
 
-            // Add hotelId ONLY if present (staff users)
+            // Add username if present
+            Object username = claims.get("username");
+            if (username != null) {
+                requestBuilder.header("X-User-Username", username.toString());
+            }
+
+            // Add hotelId ONLY if present (staff users) - standardize to X-Hotel-Id
             Object hotelId = claims.get("hotelId");
             if (hotelId != null) {
                 requestBuilder.header("X-Hotel-Id", hotelId.toString());
+                // Also set X-User-Hotel-Id for backward compatibility
+                requestBuilder.header("X-User-Hotel-Id", hotelId.toString());
             }
 
             ServerHttpRequest mutatedRequest = requestBuilder.build();

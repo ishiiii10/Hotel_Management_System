@@ -7,12 +7,12 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import com.hotelbooking.hotel.domain.RoomAvailability;
-import com.hotelbooking.hotel.repository.RoomAvailabilityRepository;
-import com.hotelbooking.hotel.service.RoomAvailabilityService;
 import com.hotelbooking.hotel.dto.request.BlockRoomRequest;
 import com.hotelbooking.hotel.dto.request.UnblockRoomRequest;
 import com.hotelbooking.hotel.dto.response.AvailabilitySearchResponse;
 import com.hotelbooking.hotel.enums.AvailabilityStatus;
+import com.hotelbooking.hotel.repository.RoomAvailabilityRepository;
+import com.hotelbooking.hotel.service.RoomAvailabilityService;
 
 import lombok.RequiredArgsConstructor;
 
@@ -97,9 +97,15 @@ public class RoomAvailabilityServiceImpl implements RoomAvailabilityService {
             throw new IllegalArgumentException("Check-in must be before check-out");
         }
 
-        // checkOut is exclusive → convert to inclusive
+        if (checkIn.isBefore(LocalDate.now())) {
+            throw new IllegalArgumentException("Check-in date cannot be in the past");
+        }
+
+        // checkOut is exclusive in booking context (guest checks out on this date, doesn't stay)
+        // So we need availability for dates: checkIn, checkIn+1, ..., checkOut-1
         LocalDate effectiveCheckOut = checkOut.minusDays(1);
 
+        // Find rooms that are available for ALL dates in the range
         var roomIds =
                 availabilityRepository.findAvailableRoomIdsStrict(
                         hotelId,
