@@ -1,69 +1,24 @@
 package com.hotelbooking.hotel.service;
 
-
 import java.util.List;
 
-import org.springframework.stereotype.Service;
-
 import com.hotelbooking.hotel.domain.City;
-import com.hotelbooking.hotel.domain.Hotel;
-import com.hotelbooking.hotel.domain.HotelStatus;
+import com.hotelbooking.hotel.domain.Hotel_Category;
 import com.hotelbooking.hotel.dto.CreateHotelRequest;
-import com.hotelbooking.hotel.dto.UpdateHotelRequest;
-import com.hotelbooking.hotel.repository.HotelRepository;
+import com.hotelbooking.hotel.dto.HotelDetailResponse;
+import com.hotelbooking.hotel.dto.HotelSearchResponse;
 
-import lombok.RequiredArgsConstructor;
+public interface HotelService {
 
-@Service
-@RequiredArgsConstructor
-public class HotelService {
+    Long createHotel(CreateHotelRequest request);
 
-    private final HotelRepository hotelRepository;
+    Long updateHotel(Long hotelId, CreateHotelRequest request);
 
-    public Hotel createHotel(CreateHotelRequest request) {
-        Hotel hotel = Hotel.builder()
-                .name(request.getName())
-                .city(request.getCity())
-                .address(request.getAddress())
-                .email(request.getEmail())
-                .phoneNumber(request.getPhoneNumber())
-                .category(request.getCategory())
-                .status(HotelStatus.ACTIVE)
-                .build();
+    HotelDetailResponse getHotelById(Long hotelId);
 
-        return hotelRepository.save(hotel);
-    }
+    List<HotelSearchResponse> searchHotelsByCity(City city);
+    
+    List<HotelSearchResponse> searchHotelsByCategory(Hotel_Category category);
 
-    public Hotel updateHotel(Long hotelId, UpdateHotelRequest request) {
-        Hotel hotel = getHotelOrThrow(hotelId);
-
-        hotel.setName(request.getName());
-        hotel.setAddress(request.getAddress());
-        hotel.setEmail(request.getEmail());
-        hotel.setPhoneNumber(request.getPhoneNumber());
-        hotel.setCategory(request.getCategory());
-
-        return hotelRepository.save(hotel);
-    }
-
-    public void disableHotel(Long hotelId) {
-        Hotel hotel = getHotelOrThrow(hotelId);
-        hotel.setStatus(HotelStatus.INACTIVE);
-        hotelRepository.save(hotel);
-    }
-
-    public Hotel getHotel(Long hotelId) {
-        return getHotelOrThrow(hotelId);
-    }
-
-    public List<Hotel> listHotels(City city) {
-        return city != null
-                ? hotelRepository.findByCity(city)
-                : hotelRepository.findAll();
-    }
-
-    private Hotel getHotelOrThrow(Long hotelId) {
-        return hotelRepository.findById(hotelId)
-                .orElseThrow(() -> new IllegalStateException("Hotel not found"));
-    }
+    List<HotelDetailResponse> getAllHotels();
 }

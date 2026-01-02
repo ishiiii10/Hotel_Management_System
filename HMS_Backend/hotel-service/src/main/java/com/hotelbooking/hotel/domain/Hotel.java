@@ -2,6 +2,7 @@ package com.hotelbooking.hotel.domain;
 
 import java.time.LocalDateTime;
 
+
 import jakarta.persistence.*;
 import jakarta.validation.constraints.Email;
 import jakarta.validation.constraints.NotBlank;
@@ -30,6 +31,14 @@ public class Hotel {
     @NotBlank
     @Column(nullable = false, length = 150)
     private String name;
+    
+    @Enumerated(EnumType.STRING)
+    @Column(nullable = false)
+    private Hotel_Category category;
+    
+    @Column(length = 500)
+    private String description;
+
 
     @Enumerated(EnumType.STRING)
     @Column(nullable = false)
@@ -38,6 +47,19 @@ public class Hotel {
     @NotBlank
     @Column(nullable = false, length = 300)
     private String address;
+    
+    @NotBlank
+    @Column(nullable = false, length = 20)
+    private State state;
+    
+    @NotBlank
+    @Column(nullable = false, length = 20)
+    private String country;
+    
+    @NotBlank
+    @Column(nullable = false, length = 6)
+    private String pincode;
+
 
     @Email(message = "Invalid email format")
     @NotBlank
@@ -50,15 +72,25 @@ public class Hotel {
         message = "Phone number must contain 10 to 15 digits and may start with +"
     )
     @Column(name = "phone_number", nullable = false, length = 16)
-    private String phoneNumber;
+    private String contactNumber;
     
-    @Enumerated(EnumType.STRING)
-    @Column(nullable = false)
-    private Hotel_Category category;
+    private Integer starRating;
+
+    
+    @Column(length = 500)
+    private String amenities;
+
+    private String imageUrl;
+
+    
 
     @Enumerated(EnumType.STRING)
     @Column(nullable = false)
     private HotelStatus status;
+    
+    private Integer totalRooms;
+    private Integer availableRooms;
+
 
     @Column(nullable = false, updatable = false)
     private LocalDateTime createdAt;
@@ -71,6 +103,7 @@ public class Hotel {
         this.createdAt = LocalDateTime.now();
         this.updatedAt = this.createdAt;
         this.status = HotelStatus.ACTIVE;
+        this.availableRooms = this.totalRooms;
     }
 
     @PreUpdate
