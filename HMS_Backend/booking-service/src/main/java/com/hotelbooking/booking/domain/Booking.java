@@ -62,7 +62,7 @@ public class Booking {
     @Enumerated(EnumType.STRING)
     @Column(nullable = false, length = 20)
     @Builder.Default
-    private BookingStatus status = BookingStatus.PENDING;
+    private BookingStatus status = BookingStatus.CREATED;
 
     @Column(name = "guest_name", length = 100)
     private String guestName;
@@ -105,7 +105,7 @@ public class Booking {
         this.createdAt = LocalDateTime.now();
         this.updatedAt = LocalDateTime.now();
         if (this.status == null) {
-            this.status = BookingStatus.PENDING;
+            this.status = BookingStatus.CREATED;
         }
         if (this.checkInDate != null && this.checkOutDate != null) {
             this.numberOfNights = (int) java.time.temporal.ChronoUnit.DAYS.between(

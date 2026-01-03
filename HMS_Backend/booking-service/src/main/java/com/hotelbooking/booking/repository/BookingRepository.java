@@ -75,6 +75,16 @@ public interface BookingRepository extends JpaRepository<Booking, Long> {
     List<Booking> findTodayCheckIns(@Param("hotelId") Long hotelId, @Param("date") LocalDate date);
 
     /**
+     * Find bookings that need check-in reminder (24 hours before check-in)
+     */
+    @Query("""
+            SELECT b FROM Booking b
+            WHERE b.status = 'CONFIRMED'
+            AND b.checkInDate = :reminderDate
+            """)
+    List<Booking> findBookingsForCheckInReminder(@Param("reminderDate") LocalDate reminderDate);
+
+    /**
      * Find today's check-outs for a hotel.
      */
     @Query("""

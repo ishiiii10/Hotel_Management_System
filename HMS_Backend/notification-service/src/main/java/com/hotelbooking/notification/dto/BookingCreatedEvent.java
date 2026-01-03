@@ -1,6 +1,12 @@
 package com.hotelbooking.notification.dto;
 
+import java.io.Serializable;
+import java.time.LocalDate;
+
+import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
+
 import lombok.AllArgsConstructor;
+import lombok.Builder;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
 import lombok.Setter;
@@ -9,13 +15,18 @@ import lombok.Setter;
 @Setter
 @NoArgsConstructor
 @AllArgsConstructor
-public class BookingCreatedEvent {
+@Builder
+@JsonIgnoreProperties(ignoreUnknown = true)
+public class BookingCreatedEvent implements Serializable {
+    private static final long serialVersionUID = 1L;
+    
     private Long bookingId;
     private Long userId;
     private Long hotelId;
     private Long roomId;
-    private String checkInDate;
-    private String checkOutDate;
+    private LocalDate checkInDate;
+    private LocalDate checkOutDate;
     private Double amount;
+    private String guestEmail;
+    private String guestName;
 }
-

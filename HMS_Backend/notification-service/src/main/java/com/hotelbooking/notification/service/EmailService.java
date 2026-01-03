@@ -15,7 +15,7 @@ public class EmailService {
 
     private final JavaMailSender mailSender;
 
-    @Value("${notification.email.from}")
+    @Value("${spring.mail.username}")
     private String fromEmail;
 
     @Value("${notification.email.from-name:Hotel Booking System}")
@@ -80,6 +80,56 @@ public class EmailService {
             "Best regards,\n" +
             "Hotel Booking System",
             guestName, hotelName
+        );
+        sendEmail(to, subject, body);
+    }
+
+    public void sendCheckInReminderEmail(String to, String guestName, String hotelName, 
+                                        String checkInDate, String hotelAddress) {
+        String subject = "Reminder: Your check-in is tomorrow - " + hotelName;
+        String body = String.format(
+            "Dear %s,\n\n" +
+            "This is a friendly reminder that your check-in is scheduled for tomorrow: %s\n\n" +
+            "Hotel: %s\n" +
+            "Address: %s\n\n" +
+            "We look forward to welcoming you!\n\n" +
+            "Best regards,\n" +
+            "Hotel Booking System",
+            guestName, checkInDate, hotelName, hotelAddress
+        );
+        sendEmail(to, subject, body);
+    }
+
+    public void sendFeedbackRequestEmail(String to, String guestName, String hotelName, 
+                                        Long bookingId, String feedbackLink) {
+        String subject = "We'd love your feedback - " + hotelName;
+        String body = String.format(
+            "Dear %s,\n\n" +
+            "Thank you for staying at %s!\n\n" +
+            "Your feedback is important to us. Please take a moment to share your experience:\n\n" +
+            "Feedback Link: %s\n\n" +
+            "This link will expire in 7 days.\n\n" +
+            "Thank you for your time!\n\n" +
+            "Best regards,\n" +
+            "Hotel Booking System",
+            guestName, hotelName, feedbackLink
+        );
+        sendEmail(to, subject, body);
+    }
+
+    public void sendCancellationEmail(String to, String guestName, String hotelName, 
+                                     String checkInDate, String cancellationReason) {
+        String subject = "Booking Cancellation - " + hotelName;
+        String body = String.format(
+            "Dear %s,\n\n" +
+            "Your booking has been cancelled.\n\n" +
+            "Hotel: %s\n" +
+            "Check-in Date: %s\n" +
+            "Reason: %s\n\n" +
+            "We hope to serve you in the future!\n\n" +
+            "Best regards,\n" +
+            "Hotel Booking System",
+            guestName, hotelName, checkInDate, cancellationReason
         );
         sendEmail(to, subject, body);
     }

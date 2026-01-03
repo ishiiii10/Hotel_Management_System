@@ -2,6 +2,7 @@ package com.hotelbooking.booking.service;
 
 import java.math.BigDecimal;
 import java.time.LocalDate;
+import java.time.LocalDateTime;
 import java.time.temporal.ChronoUnit;
 import java.util.List;
 import java.util.stream.Collectors;
@@ -131,8 +132,8 @@ public class BookingService {
         long nights = ChronoUnit.DAYS.between(request.getCheckInDate(), request.getCheckOutDate());
         BigDecimal totalAmount = room.getPricePerNight().multiply(BigDecimal.valueOf(nights));
 
-        // Step 5b: Create booking with status CONFIRMED
-        // (Payment processing can be handled by Payment Service via Kafka)
+        // Step 5b: Create booking with status CREATED
+        // Payment service will confirm it and change status to CONFIRMED
         Booking booking = Booking.builder()
                 .userId(userId)
                 .hotelId(request.getHotelId())
@@ -142,7 +143,7 @@ public class BookingService {
                 .checkInDate(request.getCheckInDate())
                 .checkOutDate(request.getCheckOutDate())
                 .totalAmount(totalAmount)
-                .status(BookingStatus.CONFIRMED)
+                .status(BookingStatus.CREATED)
                 .guestName(guestName)
                 .guestEmail(guestEmail)
                 .guestPhone(guestPhone)
@@ -152,16 +153,52 @@ public class BookingService {
 
         booking = bookingRepository.save(booking);
 
-        // Step 5c: Publish Kafka event
-        kafkaEventPublisher.publishBookingCreated(
-                booking.getId(),
-                booking.getUserId(),
-                booking.getHotelId(),
-                booking.getRoomId(),
-                booking.getCheckInDate().toString(),
-                booking.getCheckOutDate().toString(),
-                booking.getTotalAmount().doubleValue()
-        );
+        // Step 5c: Publish BookingCreatedEvent
+        com.hotelbooking.booking.event.BookingCreatedEvent createdEvent = 
+            com.hotelbooking.booking.event.BookingCreatedEvent.builder()
+                .bookingId(booking.getId())
+                .userId(booking.getUserId())
+                .hotelId(booking.getHotelId())
+                .roomId(booking.getRoomId())
+                .checkInDate(booking.getCheckInDate())
+                .checkOutDate(booking.getCheckOutDate())
+                .amount(booking.getTotalAmount().doubleValue())
+                .guestEmail(booking.getGuestEmail())
+                .guestName(booking.getGuestName())
+                .build();
+        kafkaEventPublisher.publishBookingCreated(createdEvent);
+
+        return toResponse(booking);
+    }
+
+    /**
+     * Confirm booking (called by Payment Service after successful payment)
+     */
+    public BookingResponse confirmBooking(Long bookingId) {
+        Booking booking = bookingRepository.findById(bookingId)
+                .orElseThrow(() -> new IllegalStateException("Booking not found"));
+
+        if (booking.getStatus() != BookingStatus.CREATED) {
+            throw new IllegalStateException("Only CREATED bookings can be confirmed");
+        }
+
+        booking.setStatus(BookingStatus.CONFIRMED);
+        booking = bookingRepository.save(booking);
+
+        // Publish BookingConfirmedEvent
+        com.hotelbooking.booking.event.BookingConfirmedEvent confirmedEvent = 
+            com.hotelbooking.booking.event.BookingConfirmedEvent.builder()
+                .bookingId(booking.getId())
+                .userId(booking.getUserId())
+                .hotelId(booking.getHotelId())
+                .roomId(booking.getRoomId())
+                .checkInDate(booking.getCheckInDate())
+                .checkOutDate(booking.getCheckOutDate())
+                .amount(booking.getTotalAmount().doubleValue())
+                .guestEmail(booking.getGuestEmail())
+                .guestName(booking.getGuestName())
+                .build();
+        kafkaEventPublisher.publishBookingConfirmed(confirmedEvent);
 
         return toResponse(booking);
     }
@@ -234,6 +271,21 @@ public class BookingService {
         booking.setCancelledAt(java.time.LocalDateTime.now());
 
         booking = bookingRepository.save(booking);
+
+        // Publish BookingCancelledEvent
+        com.hotelbooking.booking.event.BookingCancelledEvent cancelledEvent = 
+            com.hotelbooking.booking.event.BookingCancelledEvent.builder()
+                .bookingId(booking.getId())
+                .userId(booking.getUserId())
+                .hotelId(booking.getHotelId())
+                .checkInDate(booking.getCheckInDate())
+                .checkOutDate(booking.getCheckOutDate())
+                .cancellationReason(booking.getCancellationReason())
+                .guestEmail(booking.getGuestEmail())
+                .guestName(booking.getGuestName())
+                .build();
+        kafkaEventPublisher.publishBookingCancelled(cancelledEvent);
+
         return toResponse(booking);
     }
 
@@ -250,18 +302,28 @@ public class BookingService {
         }
 
         // Check if booking can be checked in
-        if (booking.getStatus() != BookingStatus.CONFIRMED && booking.getStatus() != BookingStatus.PENDING) {
-            throw new IllegalStateException("Only CONFIRMED or PENDING bookings can be checked in");
+        if (booking.getStatus() != BookingStatus.CONFIRMED) {
+            throw new IllegalStateException("Only CONFIRMED bookings can be checked in");
         }
 
+        LocalDateTime checkInTimestamp = java.time.LocalDateTime.now();
         booking.setStatus(BookingStatus.CHECKED_IN);
-        booking.setCheckedInAt(java.time.LocalDateTime.now());
+        booking.setCheckedInAt(checkInTimestamp);
 
         booking = bookingRepository.save(booking);
 
-        // Publish events
-        kafkaEventPublisher.publishBookingCheckedIn(booking.getId(), booking.getUserId(), booking.getHotelId());
-        kafkaEventPublisher.publishBookingCompleted(booking.getId(), booking.getUserId(), booking.getHotelId());
+        // Publish GuestCheckedInEvent
+        com.hotelbooking.booking.event.GuestCheckedInEvent checkedInEvent = 
+            com.hotelbooking.booking.event.GuestCheckedInEvent.builder()
+                .bookingId(booking.getId())
+                .userId(booking.getUserId())
+                .hotelId(booking.getHotelId())
+                .checkInDate(booking.getCheckInDate())
+                .actualCheckInTimestamp(checkInTimestamp)
+                .guestEmail(booking.getGuestEmail())
+                .guestName(booking.getGuestName())
+                .build();
+        kafkaEventPublisher.publishGuestCheckedIn(checkedInEvent);
 
         return toResponse(booking);
     }
@@ -283,10 +345,26 @@ public class BookingService {
             throw new IllegalStateException("Only CHECKED_IN bookings can be checked out");
         }
 
+        LocalDateTime checkoutTimestamp = java.time.LocalDateTime.now();
         booking.setStatus(BookingStatus.CHECKED_OUT);
-        booking.setCheckedOutAt(java.time.LocalDateTime.now());
+        booking.setCheckedOutAt(checkoutTimestamp);
 
         booking = bookingRepository.save(booking);
+
+        // Publish CheckoutCompletedEvent with all required fields
+        com.hotelbooking.booking.event.CheckoutCompletedEvent checkoutEvent = 
+            com.hotelbooking.booking.event.CheckoutCompletedEvent.builder()
+                .bookingId(booking.getId())
+                .userId(booking.getUserId())
+                .hotelId(booking.getHotelId())
+                .checkInDate(booking.getCheckInDate())
+                .checkOutDate(booking.getCheckOutDate())
+                .actualCheckoutTimestamp(checkoutTimestamp)
+                .guestEmail(booking.getGuestEmail())
+                .guestName(booking.getGuestName())
+                .build();
+        kafkaEventPublisher.publishCheckoutCompleted(checkoutEvent);
+
         return toResponse(booking);
     }
 

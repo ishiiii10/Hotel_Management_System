@@ -1,14 +1,22 @@
 package com.hotelbooking.notification.service;
 
-import org.springframework.stereotype.Service;
+import java.time.LocalDate;
+import java.time.LocalDateTime;
+import java.util.UUID;
 
-import com.hotelbooking.notification.dto.BookingCheckedInEvent;
-import com.hotelbooking.notification.dto.BookingCompletedEvent;
+import org.springframework.beans.factory.annotation.Value;
+import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
+
+import com.hotelbooking.notification.domain.ScheduledReminder;
+import com.hotelbooking.notification.dto.BookingCancelledEvent;
+import com.hotelbooking.notification.dto.BookingConfirmedEvent;
 import com.hotelbooking.notification.dto.BookingCreatedEvent;
+import com.hotelbooking.notification.dto.CheckoutCompletedEvent;
+import com.hotelbooking.notification.dto.GuestCheckedInEvent;
 import com.hotelbooking.notification.dto.HotelInfoResponse;
-import com.hotelbooking.notification.dto.UserInfoResponse;
-import com.hotelbooking.notification.feign.AuthServiceClient;
 import com.hotelbooking.notification.feign.HotelServiceClient;
+import com.hotelbooking.notification.repository.ScheduledReminderRepository;
 
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -20,19 +28,16 @@ public class NotificationService {
 
     private final EmailService emailService;
     private final SmsService smsService;
-    private final AuthServiceClient authServiceClient;
     private final HotelServiceClient hotelServiceClient;
+    private final ScheduledReminderRepository reminderRepository;
 
+    @Value("${notification.feedback.base-url:http://localhost:3000/feedback}")
+    private String feedbackBaseUrl;
+
+    @Transactional
     public void handleBookingCreated(BookingCreatedEvent event) {
         try {
-            log.info("Processing booking-created event for bookingId: {}", event.getBookingId());
-
-            // Fetch user details
-            UserInfoResponse user = authServiceClient.getUserById(event.getUserId());
-            if (user == null || user.getEmail() == null) {
-                log.warn("User not found or email missing for userId: {}", event.getUserId());
-                return;
-            }
+            log.info("Processing BookingCreatedEvent for bookingId: {}", event.getBookingId());
 
             // Fetch hotel details
             HotelInfoResponse hotel = hotelServiceClient.getHotelById(event.getHotelId());
@@ -41,45 +46,38 @@ public class NotificationService {
                 return;
             }
 
-            // Send email notification
-            String guestName = user.getFullName() != null ? user.getFullName() : user.getUsername();
+            String guestName = event.getGuestName() != null ? event.getGuestName() : "Guest";
+            String guestEmail = event.getGuestEmail();
+
+            if (guestEmail == null || guestEmail.isEmpty()) {
+                log.warn("Guest email missing for bookingId: {}", event.getBookingId());
+                return;
+            }
+
+            // Send booking created email
             emailService.sendBookingConfirmationEmail(
-                user.getEmail(),
+                guestEmail,
                 guestName,
                 hotel.getName(),
-                event.getCheckInDate(),
-                event.getCheckOutDate(),
+                event.getCheckInDate().toString(),
+                event.getCheckOutDate().toString(),
                 event.getAmount()
             );
 
-            // Send SMS notification (if phone number available)
-            if (user.getPhoneNumber() != null && !user.getPhoneNumber().isEmpty()) {
-                smsService.sendBookingConfirmationSms(
-                    user.getPhoneNumber(),
-                    hotel.getName(),
-                    event.getCheckInDate(),
-                    event.getCheckOutDate()
-                );
-            }
+            // Schedule check-in reminder (24 hours before check-in)
+            scheduleCheckInReminder(event, hotel);
 
-            log.info("Notifications sent successfully for bookingId: {}", event.getBookingId());
+            log.info("BookingCreatedEvent processed successfully for bookingId: {}", event.getBookingId());
         } catch (Exception e) {
-            log.error("Error processing booking-created event for bookingId: {}", 
+            log.error("Error processing BookingCreatedEvent for bookingId: {}", 
                      event.getBookingId(), e);
-            // Don't throw - we don't want to break the Kafka consumer
         }
     }
 
-    public void handleBookingCheckedIn(BookingCheckedInEvent event) {
+    @Transactional
+    public void handleBookingConfirmed(BookingConfirmedEvent event) {
         try {
-            log.info("Processing booking-checked-in event for bookingId: {}", event.getBookingId());
-
-            // Fetch user details
-            UserInfoResponse user = authServiceClient.getUserById(event.getUserId());
-            if (user == null || user.getEmail() == null) {
-                log.warn("User not found or email missing for userId: {}", event.getUserId());
-                return;
-            }
+            log.info("Processing BookingConfirmedEvent for bookingId: {}", event.getBookingId());
 
             // Fetch hotel details
             HotelInfoResponse hotel = hotelServiceClient.getHotelById(event.getHotelId());
@@ -88,40 +86,45 @@ public class NotificationService {
                 return;
             }
 
-            // Send email notification
-            String guestName = user.getFullName() != null ? user.getFullName() : user.getUsername();
-            emailService.sendCheckInNotificationEmail(
-                user.getEmail(),
+            String guestName = event.getGuestName() != null ? event.getGuestName() : "Guest";
+            String guestEmail = event.getGuestEmail();
+
+            if (guestEmail == null || guestEmail.isEmpty()) {
+                log.warn("Guest email missing for bookingId: {}", event.getBookingId());
+                return;
+            }
+
+            // Send confirmation email
+            emailService.sendBookingConfirmationEmail(
+                guestEmail,
                 guestName,
                 hotel.getName(),
-                java.time.LocalDate.now().toString()
+                event.getCheckInDate().toString(),
+                event.getCheckOutDate().toString(),
+                event.getAmount()
             );
 
-            // Send SMS notification
-            if (user.getPhoneNumber() != null && !user.getPhoneNumber().isEmpty()) {
-                smsService.sendCheckInNotificationSms(
-                    user.getPhoneNumber(),
-                    hotel.getName()
-                );
-            }
+            // Schedule check-in reminder if not already scheduled
+            scheduleCheckInReminder(event, hotel);
 
-            log.info("Check-in notifications sent successfully for bookingId: {}", event.getBookingId());
+            log.info("BookingConfirmedEvent processed successfully for bookingId: {}", event.getBookingId());
         } catch (Exception e) {
-            log.error("Error processing booking-checked-in event for bookingId: {}", 
+            log.error("Error processing BookingConfirmedEvent for bookingId: {}", 
                      event.getBookingId(), e);
         }
     }
 
-    public void handleBookingCompleted(BookingCompletedEvent event) {
+    @Transactional
+    public void handleBookingCancelled(BookingCancelledEvent event) {
         try {
-            log.info("Processing booking-completed event for bookingId: {}", event.getBookingId());
+            log.info("Processing BookingCancelledEvent for bookingId: {}", event.getBookingId());
 
-            // Fetch user details
-            UserInfoResponse user = authServiceClient.getUserById(event.getUserId());
-            if (user == null || user.getEmail() == null) {
-                log.warn("User not found or email missing for userId: {}", event.getUserId());
-                return;
-            }
+            // Cancel scheduled reminders
+            reminderRepository.findByBookingId(event.getBookingId())
+                .forEach(reminder -> {
+                    reminder.setCancelled(true);
+                    reminderRepository.save(reminder);
+                });
 
             // Fetch hotel details
             HotelInfoResponse hotel = hotelServiceClient.getHotelById(event.getHotelId());
@@ -130,20 +133,185 @@ public class NotificationService {
                 return;
             }
 
-            // Send email notification
-            String guestName = user.getFullName() != null ? user.getFullName() : user.getUsername();
+            String guestName = event.getGuestName() != null ? event.getGuestName() : "Guest";
+            String guestEmail = event.getGuestEmail();
+
+            if (guestEmail == null || guestEmail.isEmpty()) {
+                log.warn("Guest email missing for bookingId: {}", event.getBookingId());
+                return;
+            }
+
+            // Send cancellation email
+            emailService.sendCancellationEmail(
+                guestEmail,
+                guestName,
+                hotel.getName(),
+                event.getCheckInDate().toString(),
+                event.getCancellationReason() != null ? event.getCancellationReason() : "Not specified"
+            );
+
+            log.info("BookingCancelledEvent processed successfully for bookingId: {}", event.getBookingId());
+        } catch (Exception e) {
+            log.error("Error processing BookingCancelledEvent for bookingId: {}", 
+                     event.getBookingId(), e);
+        }
+    }
+
+    @Transactional
+    public void handleGuestCheckedIn(GuestCheckedInEvent event) {
+        try {
+            log.info("Processing GuestCheckedInEvent for bookingId: {}", event.getBookingId());
+
+            // Fetch hotel details
+            HotelInfoResponse hotel = hotelServiceClient.getHotelById(event.getHotelId());
+            if (hotel == null) {
+                log.warn("Hotel not found for hotelId: {}", event.getHotelId());
+                return;
+            }
+
+            String guestName = event.getGuestName() != null ? event.getGuestName() : "Guest";
+            String guestEmail = event.getGuestEmail();
+
+            if (guestEmail == null || guestEmail.isEmpty()) {
+                log.warn("Guest email missing for bookingId: {}", event.getBookingId());
+                return;
+            }
+
+            // Send welcome email
+            emailService.sendCheckInNotificationEmail(
+                guestEmail,
+                guestName,
+                hotel.getName(),
+                event.getCheckInDate().toString()
+            );
+
+            // Cancel any pending reminders (guest already checked in)
+            reminderRepository.findByBookingId(event.getBookingId())
+                .forEach(reminder -> {
+                    reminder.setCancelled(true);
+                    reminderRepository.save(reminder);
+                });
+
+            log.info("GuestCheckedInEvent processed successfully for bookingId: {}", event.getBookingId());
+        } catch (Exception e) {
+            log.error("Error processing GuestCheckedInEvent for bookingId: {}", 
+                     event.getBookingId(), e);
+        }
+    }
+
+    @Transactional
+    public void handleCheckoutCompleted(CheckoutCompletedEvent event) {
+        try {
+            log.info("Processing CheckoutCompletedEvent for bookingId: {}", event.getBookingId());
+
+            // Fetch hotel details
+            HotelInfoResponse hotel = hotelServiceClient.getHotelById(event.getHotelId());
+            if (hotel == null) {
+                log.warn("Hotel not found for hotelId: {}", event.getHotelId());
+                return;
+            }
+
+            String guestName = event.getGuestName() != null ? event.getGuestName() : "Guest";
+            String guestEmail = event.getGuestEmail();
+
+            if (guestEmail == null || guestEmail.isEmpty()) {
+                log.warn("Guest email missing for bookingId: {}", event.getBookingId());
+                return;
+            }
+
+            // Send thank-you email
             emailService.sendBookingCompletedEmail(
-                user.getEmail(),
+                guestEmail,
                 guestName,
                 hotel.getName()
             );
 
-            log.info("Booking completed notifications sent successfully for bookingId: {}", 
-                    event.getBookingId());
+            // Generate feedback link (booking-scoped and time-limited)
+            String feedbackToken = UUID.randomUUID().toString();
+            String feedbackLink = String.format("%s?token=%s&bookingId=%d", 
+                feedbackBaseUrl, feedbackToken, event.getBookingId());
+
+            // Send feedback request email
+            emailService.sendFeedbackRequestEmail(
+                guestEmail,
+                guestName,
+                hotel.getName(),
+                event.getBookingId(),
+                feedbackLink
+            );
+
+            log.info("CheckoutCompletedEvent processed successfully for bookingId: {}", event.getBookingId());
         } catch (Exception e) {
-            log.error("Error processing booking-completed event for bookingId: {}", 
+            log.error("Error processing CheckoutCompletedEvent for bookingId: {}", 
+                     event.getBookingId(), e);
+        }
+    }
+
+    private void scheduleCheckInReminder(BookingCreatedEvent event, HotelInfoResponse hotel) {
+        try {
+            // Check if reminder already exists
+            if (reminderRepository.findByBookingIdAndReminderType(
+                    event.getBookingId(), "CHECK_IN_REMINDER").isPresent()) {
+                log.debug("Check-in reminder already scheduled for bookingId: {}", event.getBookingId());
+                return;
+            }
+
+            // Schedule reminder 24 hours before check-in
+            LocalDate reminderDate = event.getCheckInDate().minusDays(1);
+
+            ScheduledReminder reminder = ScheduledReminder.builder()
+                .bookingId(event.getBookingId())
+                .userId(event.getUserId())
+                .hotelId(event.getHotelId())
+                .reminderType("CHECK_IN_REMINDER")
+                .scheduledDate(reminderDate)
+                .checkInDate(event.getCheckInDate())
+                .guestEmail(event.getGuestEmail())
+                .guestName(event.getGuestName())
+                .sent(false)
+                .cancelled(false)
+                .build();
+
+            reminderRepository.save(reminder);
+            log.info("Scheduled check-in reminder for bookingId: {} on date: {}", 
+                    event.getBookingId(), reminderDate);
+        } catch (Exception e) {
+            log.error("Failed to schedule check-in reminder for bookingId: {}", 
+                     event.getBookingId(), e);
+        }
+    }
+
+    private void scheduleCheckInReminder(BookingConfirmedEvent event, HotelInfoResponse hotel) {
+        try {
+            // Check if reminder already exists
+            if (reminderRepository.findByBookingIdAndReminderType(
+                    event.getBookingId(), "CHECK_IN_REMINDER").isPresent()) {
+                log.debug("Check-in reminder already scheduled for bookingId: {}", event.getBookingId());
+                return;
+            }
+
+            // Schedule reminder 24 hours before check-in
+            LocalDate reminderDate = event.getCheckInDate().minusDays(1);
+
+            ScheduledReminder reminder = ScheduledReminder.builder()
+                .bookingId(event.getBookingId())
+                .userId(event.getUserId())
+                .hotelId(event.getHotelId())
+                .reminderType("CHECK_IN_REMINDER")
+                .scheduledDate(reminderDate)
+                .checkInDate(event.getCheckInDate())
+                .guestEmail(event.getGuestEmail())
+                .guestName(event.getGuestName())
+                .sent(false)
+                .cancelled(false)
+                .build();
+
+            reminderRepository.save(reminder);
+            log.info("Scheduled check-in reminder for bookingId: {} on date: {}", 
+                    event.getBookingId(), reminderDate);
+        } catch (Exception e) {
+            log.error("Failed to schedule check-in reminder for bookingId: {}", 
                      event.getBookingId(), e);
         }
     }
 }
-
