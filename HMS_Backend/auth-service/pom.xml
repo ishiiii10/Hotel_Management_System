@@ -27,10 +27,6 @@
 
     <dependencies>
 
-        <!-- ===================== -->
-        <!-- Core Spring Boot -->
-        <!-- ===================== -->
-
         <!-- Web / REST -->
         <dependency>
             <groupId>org.springframework.boot</groupId>
@@ -124,7 +120,6 @@
 
     </dependencies>
 
-    >
 
     <dependencyManagement>
         <dependencies>

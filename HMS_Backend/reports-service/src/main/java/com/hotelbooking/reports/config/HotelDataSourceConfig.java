@@ -1,5 +1,8 @@
 package com.hotelbooking.reports.config;
 
+import java.util.HashMap;
+import java.util.Map;
+
 import javax.sql.DataSource;
 
 import org.springframework.beans.factory.annotation.Qualifier;
@@ -28,7 +31,7 @@ public class HotelDataSourceConfig {
     @Bean(name = "hotelDataSource")
     @ConfigurationProperties(prefix = "spring.datasource.hotel")
     public DataSource hotelDataSource() {
-        return DataSourceBuilder.create().build();
+        return DataSourceBuilder.create().type(com.zaxxer.hikari.HikariDataSource.class).build();
     }
 
     @Bean(name = "hotelEntityManagerFactory")
@@ -38,6 +41,10 @@ public class HotelDataSourceConfig {
         em.setDataSource(dataSource);
         em.setPackagesToScan("com.hotelbooking.reports.domain.hotel");
         em.setJpaVendorAdapter(new HibernateJpaVendorAdapter());
+        
+        Map<String, Object> jpaProps = new HashMap<>();
+        jpaProps.put("hibernate.dialect", "org.hibernate.dialect.MySQLDialect");
+        jpaProps.put("hibernate.hbm2ddl.auto", "none");
         return em;
     }
 

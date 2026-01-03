@@ -56,6 +56,11 @@ public class JwtAuthFilter implements GlobalFilter, Ordered {
             return unauthorized(exchange);
         }
 
+        // Allow OPTIONS requests (CORS preflight)
+        if (httpMethod == HttpMethod.OPTIONS) {
+            return chain.filter(exchange);
+        }
+
         String method = httpMethod.name();
 
         boolean isPublic = PUBLIC_ROUTES.stream().anyMatch(route ->
