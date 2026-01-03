@@ -96,7 +96,7 @@ public class BookingService {
      * Step 5c: Publish Kafka event
      */
     public BookingResponse createBooking(CreateBookingRequest request, Long userId, String guestName, 
-                                        String guestEmail, String guestPhone) {
+                                        String guestEmail, String guestPhone, String role) {
         // Validate hotel exists and is active
         HotelDetailResponse hotel = hotelServiceClient.getHotelById(request.getHotelId());
         String hotelStatus = hotel.getStatus();
@@ -134,6 +134,12 @@ public class BookingService {
 
         // Step 5b: Create booking with status CREATED
         // Payment service will confirm it and change status to CONFIRMED
+        // Determine booking source: WALK_IN if MANAGER/ADMIN, PUBLIC if GUEST
+        com.hotelbooking.booking.enums.BookingSource bookingSource = 
+            ("MANAGER".equalsIgnoreCase(role) || "ADMIN".equalsIgnoreCase(role)) 
+                ? com.hotelbooking.booking.enums.BookingSource.WALK_IN 
+                : com.hotelbooking.booking.enums.BookingSource.PUBLIC;
+        
         Booking booking = Booking.builder()
                 .userId(userId)
                 .hotelId(request.getHotelId())
@@ -144,6 +150,7 @@ public class BookingService {
                 .checkOutDate(request.getCheckOutDate())
                 .totalAmount(totalAmount)
                 .status(BookingStatus.CREATED)
+                .bookingSource(bookingSource)
                 .guestName(guestName)
                 .guestEmail(guestEmail)
                 .guestPhone(guestPhone)

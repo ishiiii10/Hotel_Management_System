@@ -1,12 +1,12 @@
 package com.hotelbooking.booking.controller;
 
+import java.time.LocalDate;
 import java.util.List;
 import java.util.Map;
 
 import org.springframework.format.annotation.DateTimeFormat;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.GetMapping;
-import org.springframework.web.bind.annotation.PatchMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
@@ -25,8 +25,6 @@ import com.hotelbooking.booking.service.BookingService;
 
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
-
-import java.time.LocalDate;
 
 @RestController
 @RequestMapping("/bookings")
@@ -76,7 +74,7 @@ public class BookingController {
         String guestEmail = userEmail != null ? userEmail : "";
 
         BookingResponse booking = bookingService.createBooking(
-                request, userId, guestName, guestEmail, null);
+                request, userId, guestName, guestEmail, null, role);
 
         return ResponseEntity.status(201).body(Map.of(
                 "success", true,

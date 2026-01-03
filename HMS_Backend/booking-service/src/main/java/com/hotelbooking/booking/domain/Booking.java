@@ -4,6 +4,7 @@ import java.math.BigDecimal;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
 
+import com.hotelbooking.booking.enums.BookingSource;
 import com.hotelbooking.booking.enums.BookingStatus;
 
 import jakarta.persistence.Column;
@@ -63,6 +64,11 @@ public class Booking {
     @Column(nullable = false, length = 20)
     @Builder.Default
     private BookingStatus status = BookingStatus.CREATED;
+
+    @Enumerated(EnumType.STRING)
+    @Column(name = "booking_source", length = 20)
+    @Builder.Default
+    private BookingSource bookingSource = BookingSource.PUBLIC;
 
     @Column(name = "guest_name", length = 100)
     private String guestName;
