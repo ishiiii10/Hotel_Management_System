@@ -4,6 +4,9 @@ import java.math.BigDecimal;
 import java.util.List;
 import java.util.stream.Collectors;
 
+import org.springframework.cache.CacheManager;
+import org.springframework.cache.annotation.CacheEvict;
+import org.springframework.cache.annotation.Cacheable;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -31,10 +34,12 @@ public class BillingService {
     private final BillRepository billRepository;
     private final PaymentRepository paymentRepository;
     private final BookingServiceClient bookingServiceClient;
+    private final CacheManager cacheManager;
 
     /**
      * Generate bill when booking is confirmed
      */
+    @CacheEvict(value = "bills", key = "#event.bookingId")
     public void generateBill(BookingConfirmedEvent event) {
         try {
             log.info("generateBill called for bookingId: {}", event.getBookingId());
@@ -72,6 +77,7 @@ public class BillingService {
      * Get bill by booking ID
      */
     @Transactional(readOnly = true)
+    @Cacheable(value = "bills", key = "#bookingId", unless = "#result == null")
     public BillResponse getBillByBookingId(Long bookingId) {
         // Check if bill exists
         if (billRepository.findByBookingId(bookingId).isPresent()) {
@@ -119,6 +125,7 @@ public class BillingService {
     /**
      * Manually generate bill for a confirmed booking (for recovery/testing)
      */
+    @CacheEvict(value = "bills", key = "#bookingId")
     public BillResponse manuallyGenerateBill(Long bookingId) {
         // Check if bill already exists
         if (billRepository.findByBookingId(bookingId).isPresent()) {
@@ -192,6 +199,9 @@ public class BillingService {
         paymentRepository.save(payment);
         log.info("Bill {} marked as paid by {}", billId, adminUsername);
 
+        // Evict user payments cache
+        evictUserPaymentsCache(bill.getUserId());
+
         return toBillResponse(bill);
     }
 
@@ -199,6 +209,7 @@ public class BillingService {
      * Get all payments for current user
      */
     @Transactional(readOnly = true)
+    @Cacheable(value = "userPayments", key = "#userId")
     public List<PaymentResponse> getMyPayments(Long userId) {
         return paymentRepository.findByUserId(userId)
                 .stream()
