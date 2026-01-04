@@ -7,6 +7,7 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
+import org.springframework.cache.annotation.Cacheable;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -28,10 +29,12 @@ public class DashboardService {
     private final BookingRepository bookingRepository;
     private final RoomRepository roomRepository;
 
+    @Cacheable(value = "dashboard", key = "'manager:' + #hotelId")
     public DashboardResponse getManagerDashboard(Long hotelId) {
         return buildDashboard(hotelId);
     }
 
+    @Cacheable(value = "dashboard", key = "'admin:' + (#hotelId != null ? #hotelId : 'all')")
     public DashboardResponse getAdminDashboard(Long hotelId) {
         return buildDashboard(hotelId); // null for all hotels
     }
