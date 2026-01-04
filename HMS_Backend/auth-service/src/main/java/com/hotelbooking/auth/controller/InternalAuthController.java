@@ -6,6 +6,7 @@ import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 
 import com.hotelbooking.auth.domain.User;
+import com.hotelbooking.auth.exception.UserNotFoundException;
 import com.hotelbooking.auth.repository.UserRepository;
 
 import lombok.RequiredArgsConstructor;
@@ -24,7 +25,7 @@ public class InternalAuthController {
     @GetMapping("/users/{userId}")
     public UserInfoResponse getUserById(@PathVariable Long userId) {
         User user = userRepository.findById(userId)
-                .orElseThrow(() -> new IllegalStateException("User not found: " + userId));
+                .orElseThrow(() -> new UserNotFoundException("User not found: " + userId));
         
         return new UserInfoResponse(
                 user.getId(),

@@ -10,7 +10,8 @@ import com.hotelbooking.auth.domain.Role;
 import com.hotelbooking.auth.domain.User;
 import com.hotelbooking.auth.dto.AdminUserResponse;
 import com.hotelbooking.auth.dto.StaffCreateRequest;
-import com.hotelbooking.auth.dto.UserResponse;
+import com.hotelbooking.auth.exception.InsufficientRoleException;
+import com.hotelbooking.auth.exception.ValidationException;
 import com.hotelbooking.auth.service.UserService;
 
 
@@ -34,11 +35,11 @@ public class AdminController {
         try {
             role = Role.valueOf(request.getRole().toUpperCase());
         } catch (IllegalArgumentException e) {
-            throw new IllegalArgumentException("Invalid role: " + request.getRole() + ". Must be MANAGER or RECEPTIONIST");
+            throw new ValidationException("role", "Invalid role: " + request.getRole() + ". Must be MANAGER or RECEPTIONIST");
         }
         
         if (role != Role.MANAGER && role != Role.RECEPTIONIST) {
-            throw new IllegalArgumentException("Only MANAGER or RECEPTIONIST can be created");
+            throw new InsufficientRoleException("Only MANAGER or RECEPTIONIST can be created");
         }
 
         User user = User.builder()

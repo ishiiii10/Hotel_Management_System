@@ -15,6 +15,15 @@ import com.hotelbooking.auth.domain.User;
 import com.hotelbooking.auth.domain.UserHotelAssignment;
 import com.hotelbooking.auth.dto.AdminUserResponse;
 import com.hotelbooking.auth.dto.UserResponse;
+import com.hotelbooking.auth.exception.AccountDisabledException;
+import com.hotelbooking.auth.exception.CredentialsExpiredException;
+import com.hotelbooking.auth.exception.InsufficientRoleException;
+import com.hotelbooking.auth.exception.InvalidCredentialsException;
+import com.hotelbooking.auth.exception.InvalidPasswordPolicyException;
+import com.hotelbooking.auth.exception.MissingRequiredFieldException;
+import com.hotelbooking.auth.exception.UserAlreadyExistsException;
+import com.hotelbooking.auth.exception.UserNotFoundException;
+import com.hotelbooking.auth.exception.ValidationException;
 import com.hotelbooking.auth.repository.ActivationTokenRepository;
 import com.hotelbooking.auth.repository.UserHotelAssignmentRepository;
 import com.hotelbooking.auth.repository.UserRepository;
@@ -40,7 +49,7 @@ public class UserService {
     @CacheEvict(value = "users", allEntries = true)
     public User registerGuest(User user) {
         if (user.getRole() != Role.GUEST) {
-            throw new IllegalArgumentException("Only GUEST users can self-register");
+            throw new InsufficientRoleException("Only GUEST users can self-register");
         }
 
         ensureEmailNotExists(user.getEmail());
@@ -58,15 +67,15 @@ public class UserService {
     public String createStaffUser(User user, Long hotelId) {
 
         if (user.getRole() != Role.MANAGER && user.getRole() != Role.RECEPTIONIST) {
-            throw new IllegalArgumentException("Only MANAGER or RECEPTIONIST can be created");
+            throw new InsufficientRoleException("Only MANAGER or RECEPTIONIST can be created");
         }
 
         if (hotelId == null) {
-            throw new IllegalArgumentException("hotelId is required for staff users");
+            throw new MissingRequiredFieldException("hotelId");
         }
 
         if (user.getRole() == Role.ADMIN) {
-            throw new IllegalArgumentException("ADMIN role cannot be assigned to a hotel");
+            throw new ValidationException("ADMIN role cannot be assigned to a hotel");
         }
 
         ensureEmailNotExists(user.getEmail());
@@ -95,25 +104,25 @@ public class UserService {
     public void activateUser(String token) {
 
         ActivationToken activationToken = activationTokenRepository.findByToken(token)
-                .orElseThrow(() -> new IllegalArgumentException("Invalid activation token"));
+                .orElseThrow(() -> new ValidationException("Invalid activation token"));
 
         if (activationToken.isUsed()) {
-            throw new IllegalStateException("Activation token already used");
+            throw new ValidationException("Activation token already used");
         }
 
         if (activationToken.getExpiresAt().isBefore(LocalDateTime.now())) {
-            throw new IllegalStateException("Activation token expired");
+            throw new CredentialsExpiredException("Activation token expired");
         }
 
         User user = userRepository.findById(activationToken.getUserId())
-                .orElseThrow(() -> new IllegalStateException("User not found"));
+                .orElseThrow(() -> new UserNotFoundException("User not found for activation token"));
 
         if (user.isEnabled()) {
-            throw new IllegalStateException("User already activated");
+            throw new ValidationException("User already activated");
         }
 
         if (user.getRole() != Role.MANAGER && user.getRole() != Role.RECEPTIONIST) {
-            throw new IllegalStateException("Only staff users require activation");
+            throw new ValidationException("Only staff users require activation");
         }
 
         userHotelAssignmentRepository.findOneByUserId(user.getId())
@@ -133,20 +142,20 @@ public class UserService {
     public User authenticate(String email, String rawPassword) {
 
         User user = userRepository.findByEmail(email)
-                .orElseThrow(() -> new IllegalArgumentException("Invalid credentials"));
+                .orElseThrow(() -> new InvalidCredentialsException());
 
         if (!user.isEnabled()) {
-            throw new IllegalStateException("Account not activated");
+            throw new AccountDisabledException();
         }
         if (user.getPasswordLastChangedAt()
                 .plusDays(PASSWORD_EXPIRY_DAYS)
                 .isBefore(LocalDateTime.now())) {
 
-            throw new IllegalStateException("Password expired");
+            throw new CredentialsExpiredException();
         }
 
         if (!passwordEncoder.matches(rawPassword, user.getPassword())) {
-            throw new IllegalArgumentException("Invalid credentials");
+            throw new InvalidCredentialsException();
         }
 
         return user;
@@ -154,7 +163,7 @@ public class UserService {
     
     public Long getAssignedHotelId(Long userId) {
         User user = userRepository.findById(userId)
-                .orElseThrow(() -> new IllegalStateException("User not found"));
+                .orElseThrow(() -> new UserNotFoundException());
         
         // Prefer hotelId from User entity, fallback to UserHotelAssignment for backward compatibility
         if (user.getHotelId() != null) {
@@ -163,7 +172,7 @@ public class UserService {
         
         return userHotelAssignmentRepository.findOneByUserId(userId)
                 .orElseThrow(() ->
-                        new IllegalStateException("Staff user has no hotel assignment")
+                        new ValidationException("Staff user has no hotel assignment")
                 )
                 .getHotelId();
     }
@@ -173,14 +182,14 @@ public class UserService {
     public void changePassword(Long userId, String currentPassword, String newPassword) {
 
         User user = userRepository.findById(userId)
-                .orElseThrow(() -> new IllegalStateException("User not found"));
+                .orElseThrow(() -> new UserNotFoundException());
 
         if (!passwordEncoder.matches(currentPassword, user.getPassword())) {
-            throw new IllegalArgumentException("Invalid current password");
+            throw new InvalidCredentialsException("Invalid current password");
         }
 
         if (!newPassword.matches(STRONG_PASSWORD_REGEX)) {
-            throw new IllegalArgumentException("Weak password");
+            throw new InvalidPasswordPolicyException();
         }
 
         user.setPassword(passwordEncoder.encode(newPassword));
@@ -192,7 +201,7 @@ public class UserService {
     @Cacheable(value = "users", key = "#userId", unless = "#result == null")
     public User getUserById(Long userId) {
         return userRepository.findById(userId)
-                .orElseThrow(() -> new IllegalStateException("User not found"));
+                .orElseThrow(() -> new UserNotFoundException());
     }
 
     public List<AdminUserResponse> listAllUsersForAdmin() {
@@ -228,14 +237,15 @@ public class UserService {
     }
 
     @Transactional
+    @CacheEvict(value = "users", key = "#targetUserId")
     public void deactivateUser(Long targetUserId, Long adminId) {
 
         if (targetUserId.equals(adminId)) {
-            throw new IllegalStateException("Admin cannot deactivate self");
+            throw new ValidationException("Admin cannot deactivate self");
         }
 
         User user = userRepository.findById(targetUserId)
-                .orElseThrow(() -> new IllegalStateException("User not found"));
+                .orElseThrow(() -> new UserNotFoundException());
 
         user.setEnabled(false);
         userRepository.save(user);
@@ -246,14 +256,14 @@ public class UserService {
     public void reassignStaffHotel(Long userId, Long hotelId) {
 
         User user = userRepository.findById(userId)
-                .orElseThrow(() -> new IllegalStateException("User not found"));
+                .orElseThrow(() -> new UserNotFoundException());
 
         if (user.getRole() == Role.GUEST) {
-            throw new IllegalStateException("Guests cannot be assigned to hotels");
+            throw new ValidationException("Guests cannot be assigned to hotels");
         }
 
         if (user.getRole() != Role.MANAGER && user.getRole() != Role.RECEPTIONIST) {
-            throw new IllegalStateException("Only staff can be reassigned");
+            throw new InsufficientRoleException("Only staff can be reassigned");
         }
 
         // Update hotelId in User entity
@@ -263,7 +273,7 @@ public class UserService {
         // Also update UserHotelAssignment for backward compatibility
         UserHotelAssignment assignment =
                 userHotelAssignmentRepository.findOneByUserId(userId)
-                        .orElseThrow(() -> new IllegalStateException("Staff has no assignment"));
+                        .orElseThrow(() -> new ValidationException("Staff has no assignment"));
 
         assignment.setHotelId(hotelId);
         userHotelAssignmentRepository.save(assignment);
@@ -273,13 +283,13 @@ public class UserService {
 
     private void ensureEmailNotExists(String email) {
         if (userRepository.findByEmail(email).isPresent()) {
-            throw new IllegalStateException("Email already exists");
+            throw new UserAlreadyExistsException("email", email);
         }
     }
     
     private void ensureUsernameNotExists(String username) {
         if (userRepository.existsByUsername(username)) {
-            throw new IllegalStateException("Username already exists");
+            throw new UserAlreadyExistsException("username", username);
         }
     }
     private String generatePublicUserId(Role role) {
