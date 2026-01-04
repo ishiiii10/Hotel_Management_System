@@ -1,5 +1,6 @@
 package com.hotelbooking.booking.dto.response;
 
+import java.io.Serializable;
 import java.math.BigDecimal;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
@@ -17,7 +18,9 @@ import lombok.Setter;
 @NoArgsConstructor
 @AllArgsConstructor
 @Builder
-public class BookingResponse {
+public class BookingResponse implements Serializable {
+
+    private static final long serialVersionUID = 1L;
 
     private Long id;
     private Long userId;
@@ -42,4 +45,3 @@ public class BookingResponse {
     private LocalDateTime createdAt;
     private LocalDateTime updatedAt;
 }
-

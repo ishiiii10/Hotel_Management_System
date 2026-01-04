@@ -1,9 +1,9 @@
 package com.hotelbooking.booking.dto.response;
 
+import java.io.Serializable;
 import java.math.BigDecimal;
 
 import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
-import com.fasterxml.jackson.annotation.JsonProperty;
 
 import lombok.AllArgsConstructor;
 import lombok.Getter;
@@ -15,43 +15,18 @@ import lombok.Setter;
 @NoArgsConstructor
 @AllArgsConstructor
 @JsonIgnoreProperties(ignoreUnknown = true)
-public class RoomResponse {
+public class RoomResponse implements Serializable {
+
+    private static final long serialVersionUID = 1L;
+
     private Long id;
-    
-    @JsonProperty("hotelId")
     private Long hotelId;
-    
-    @JsonProperty("roomNumber")
     private String roomNumber;
-    
-    @JsonProperty("roomType")
-    private String roomType; // Jackson will deserialize enum as string
-    
-    @JsonProperty("pricePerNight")
+    private String roomType;
     private BigDecimal pricePerNight;
-    
-    @JsonProperty("maxOccupancy")
     private Integer maxOccupancy;
-    
-    @JsonProperty("floorNumber")
-    private Integer floorNumber;
-    
-    @JsonProperty("bedType")
-    private String bedType;
-    
-    @JsonProperty("roomSize")
-    private Integer roomSize;
-    
-    @JsonProperty("amenities")
     private String amenities;
-    
-    @JsonProperty("description")
     private String description;
-    
-    @JsonProperty("status")
-    private String status; // Jackson will deserialize enum as string
-    
-    @JsonProperty("isActive")
+    private String status;
     private Boolean isActive;
 }
-

@@ -1,6 +1,7 @@
 package com.hotelbooking.hotel.dto.response;
 
 
+import java.io.Serializable;
 import java.math.BigDecimal;
 
 import com.hotelbooking.hotel.enums.RoomCategory;
@@ -11,7 +12,9 @@ import lombok.Getter;
 
 @Getter
 @AllArgsConstructor
-public class RoomResponse{
+public class RoomResponse implements Serializable {
+
+    private static final long serialVersionUID = 1L;
 
     private Long id;
     private Long hotelId;

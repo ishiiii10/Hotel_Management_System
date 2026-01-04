@@ -1,5 +1,6 @@
 package com.hotelbooking.reports.dto;
 
+import java.io.Serializable;
 import java.math.BigDecimal;
 import java.util.List;
 
@@ -14,26 +15,43 @@ import lombok.Setter;
 @NoArgsConstructor
 @AllArgsConstructor
 @Builder
-public class DashboardResponse {
+public class DashboardResponse implements Serializable {
+
+    private static final long serialVersionUID = 1L;
 
     private BigDecimal totalRevenue;
-    private BigDecimal todayRevenue;
+    private BigDecimal monthlyRevenue;
     private Long totalBookings;
-    private Long todayBookings;
-    private Long checkInsToday;
-    private Long checkOutsToday;
-    private Long availableRoomsToday;
+    private Long totalCheckIns;
+    private Long totalCheckOuts;
     private Double averageRating;
-    private List<RevenueByHour> todayRevenueByHour;
-    private List<BookingsBySource> todayBookingsBySource;
+    private List<RevenueByHotel> revenueByHotel;
+    private List<RevenueTrend> revenueTrend;
+    private List<BookingTrend> bookingTrend;
+    private List<BookingStatusDistribution> bookingStatusDistribution;
 
     @Getter
     @Setter
     @NoArgsConstructor
     @AllArgsConstructor
     @Builder
-    public static class RevenueByHour {
-        private Integer hour;
+    public static class RevenueByHotel implements Serializable {
+        private static final long serialVersionUID = 1L;
+
+        private Long hotelId;
+        private String hotelName;
+        private BigDecimal revenue;
+    }
+
+    @Getter
+    @Setter
+    @NoArgsConstructor
+    @AllArgsConstructor
+    @Builder
+    public static class RevenueTrend implements Serializable {
+        private static final long serialVersionUID = 1L;
+
+        private String date;
         private BigDecimal amount;
     }
 
@@ -42,10 +60,22 @@ public class DashboardResponse {
     @NoArgsConstructor
     @AllArgsConstructor
     @Builder
-    public static class BookingsBySource {
-        private Integer hour;
-        private Long publicBookings;
-        private Long walkInBookings;
+    public static class BookingTrend implements Serializable {
+        private static final long serialVersionUID = 1L;
+
+        private String date;
+        private Long count;
+    }
+
+    @Getter
+    @Setter
+    @NoArgsConstructor
+    @AllArgsConstructor
+    @Builder
+    public static class BookingStatusDistribution implements Serializable {
+        private static final long serialVersionUID = 1L;
+
+        private String status;
+        private Long count;
     }
 }
-

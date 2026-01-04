@@ -236,6 +236,22 @@ public class UserService {
                 .toList();
     }
 
+    public List<AdminUserResponse> getUsersByHotelId(Long hotelId) {
+        return userRepository.findByHotelId(hotelId)
+                .stream()
+                .map(user -> new AdminUserResponse(
+                        user.getId(),
+                        user.getPublicUserId(),
+                        user.getUsername(),
+                        user.getFullName(),
+                        user.getEmail(),
+                        user.getRole(),
+                        user.isEnabled(),
+                        hotelId
+                ))
+                .toList();
+    }
+
     @Transactional
     @CacheEvict(value = "users", key = "#targetUserId")
     public void deactivateUser(Long targetUserId, Long adminId) {

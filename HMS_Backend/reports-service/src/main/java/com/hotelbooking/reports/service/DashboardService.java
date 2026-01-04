@@ -2,18 +2,23 @@ package com.hotelbooking.reports.service;
 
 import java.math.BigDecimal;
 import java.time.LocalDate;
+import java.time.LocalDateTime;
+import java.time.format.DateTimeFormatter;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.stream.Collectors;
 
 import org.springframework.cache.annotation.Cacheable;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import com.hotelbooking.reports.domain.hotel.Hotel;
 import com.hotelbooking.reports.dto.DashboardResponse;
 import com.hotelbooking.reports.repository.billing.BillRepository;
 import com.hotelbooking.reports.repository.booking.BookingRepository;
+import com.hotelbooking.reports.repository.hotel.HotelRepository;
 import com.hotelbooking.reports.repository.hotel.RoomRepository;
 
 import lombok.RequiredArgsConstructor;
@@ -28,6 +33,9 @@ public class DashboardService {
     private final BillRepository billRepository;
     private final BookingRepository bookingRepository;
     private final RoomRepository roomRepository;
+    private final HotelRepository hotelRepository;
+
+    private static final DateTimeFormatter DATE_FORMATTER = DateTimeFormatter.ISO_LOCAL_DATE;
 
     @Cacheable(value = "dashboard", key = "'manager:' + #hotelId")
     public DashboardResponse getManagerDashboard(Long hotelId) {
@@ -36,100 +44,164 @@ public class DashboardService {
 
     @Cacheable(value = "dashboard", key = "'admin:' + (#hotelId != null ? #hotelId : 'all')")
     public DashboardResponse getAdminDashboard(Long hotelId) {
-        return buildDashboard(hotelId); // null for all hotels
+        return buildDashboard(hotelId);
     }
 
     private DashboardResponse buildDashboard(Long hotelId) {
-        LocalDate today = LocalDate.now();
+        LocalDate now = LocalDate.now();
+        int currentYear = now.getYear();
+        int currentMonth = now.getMonthValue();
 
-        // Metrics
         BigDecimal totalRevenue = billRepository.getTotalRevenue(hotelId);
         if (totalRevenue == null) totalRevenue = BigDecimal.ZERO;
 
-        BigDecimal todayRevenue = billRepository.getTodayRevenue(today, hotelId);
-        if (todayRevenue == null) todayRevenue = BigDecimal.ZERO;
+        BigDecimal monthlyRevenue = billRepository.getMonthlyRevenue(currentYear, currentMonth, hotelId);
+        if (monthlyRevenue == null) monthlyRevenue = BigDecimal.ZERO;
 
-        Long totalBookings = bookingRepository.countTotalBookings(hotelId);
+        Long totalBookings = bookingRepository.countAllBookings(hotelId);
         if (totalBookings == null) totalBookings = 0L;
 
-        Long todayBookings = bookingRepository.countTodayBookings(today, hotelId);
-        if (todayBookings == null) todayBookings = 0L;
+        Long totalCheckIns = bookingRepository.countTotalCheckIns(hotelId);
+        if (totalCheckIns == null) totalCheckIns = 0L;
 
-        Long checkInsToday = bookingRepository.countCheckInsToday(today, hotelId);
-        if (checkInsToday == null) checkInsToday = 0L;
+        Long totalCheckOuts = bookingRepository.countTotalCheckOuts(hotelId);
+        if (totalCheckOuts == null) totalCheckOuts = 0L;
 
-        Long checkOutsToday = bookingRepository.countCheckOutsToday(today, hotelId);
-        if (checkOutsToday == null) checkOutsToday = 0L;
+        Double averageRating = calculateAverageRating(hotelId);
 
-        Long availableRoomsToday = 0L;
-        if (hotelId != null) {
-            availableRoomsToday = roomRepository.countAvailableRooms(hotelId);
-            if (availableRoomsToday == null) availableRoomsToday = 0L;
-        }
-
-        Double averageRating = 4.4; // TODO: Implement when review service is available
-
-        // Graphs
-        List<DashboardResponse.RevenueByHour> revenueByHour = buildRevenueByHour(today, hotelId);
-        List<DashboardResponse.BookingsBySource> bookingsBySource = buildBookingsBySource(today, hotelId);
+        List<DashboardResponse.RevenueByHotel> revenueByHotel = buildRevenueByHotel(hotelId);
+        List<DashboardResponse.RevenueTrend> revenueTrend = buildRevenueTrend(hotelId);
+        List<DashboardResponse.BookingTrend> bookingTrend = buildBookingTrend(hotelId);
+        List<DashboardResponse.BookingStatusDistribution> bookingStatusDistribution = buildBookingStatusDistribution(hotelId);
 
         return DashboardResponse.builder()
                 .totalRevenue(totalRevenue)
-                .todayRevenue(todayRevenue)
+                .monthlyRevenue(monthlyRevenue)
                 .totalBookings(totalBookings)
-                .todayBookings(todayBookings)
-                .checkInsToday(checkInsToday)
-                .checkOutsToday(checkOutsToday)
-                .availableRoomsToday(availableRoomsToday)
+                .totalCheckIns(totalCheckIns)
+                .totalCheckOuts(totalCheckOuts)
                 .averageRating(averageRating)
-                .todayRevenueByHour(revenueByHour)
-                .todayBookingsBySource(bookingsBySource)
+                .revenueByHotel(revenueByHotel)
+                .revenueTrend(revenueTrend)
+                .bookingTrend(bookingTrend)
+                .bookingStatusDistribution(bookingStatusDistribution)
                 .build();
     }
 
-    private List<DashboardResponse.RevenueByHour> buildRevenueByHour(LocalDate today, Long hotelId) {
-        List<Object[]> results = billRepository.findTodayRevenueByHour(today, hotelId);
-        Map<Integer, BigDecimal> hourMap = new HashMap<>();
-        
-        for (Object[] row : results) {
-            Integer hour = ((Number) row[0]).intValue();
-            BigDecimal amount = (BigDecimal) row[1];
-            hourMap.put(hour, amount);
+    private Double calculateAverageRating(Long hotelId) {
+        if (hotelId != null) {
+            Hotel hotel = hotelRepository.findById(hotelId).orElse(null);
+            if (hotel != null && hotel.getStarRating() != null) {
+                return hotel.getStarRating().doubleValue();
+            }
+        } else {
+            List<Hotel> hotels = hotelRepository.findAll();
+            if (!hotels.isEmpty()) {
+                double sum = hotels.stream()
+                        .filter(h -> h.getStarRating() != null)
+                        .mapToInt(Hotel::getStarRating)
+                        .sum();
+                long count = hotels.stream()
+                        .filter(h -> h.getStarRating() != null)
+                        .count();
+                return count > 0 ? sum / count : 0.0;
+            }
         }
-
-        List<DashboardResponse.RevenueByHour> revenueByHour = new ArrayList<>();
-        for (int hour = 0; hour < 24; hour++) {
-            BigDecimal amount = hourMap.getOrDefault(hour, BigDecimal.ZERO);
-            revenueByHour.add(DashboardResponse.RevenueByHour.builder()
-                    .hour(hour)
-                    .amount(amount)
-                    .build());
-        }
-        return revenueByHour;
+        return 0.0;
     }
 
-    private List<DashboardResponse.BookingsBySource> buildBookingsBySource(LocalDate today, Long hotelId) {
-        List<Object[]> results = bookingRepository.findTodayBookingsBySourceAndHour(today, hotelId);
-        Map<Integer, Map<String, Long>> hourSourceMap = new HashMap<>();
+    private List<DashboardResponse.RevenueByHotel> buildRevenueByHotel(Long hotelId) {
+        List<Object[]> results = billRepository.findRevenueByHotel(hotelId);
+        final Map<Long, String> hotelNameMap = new HashMap<>();
+        
+        if (hotelId == null) {
+            List<Hotel> hotels = hotelRepository.findAll();
+            hotels.forEach(hotel -> hotelNameMap.put(hotel.getId(), hotel.getName()));
+        } else {
+            Hotel hotel = hotelRepository.findById(hotelId).orElse(null);
+            if (hotel != null) {
+                hotelNameMap.put(hotelId, hotel.getName());
+            }
+        }
 
-        for (Object[] row : results) {
-            Integer hour = ((Number) row[0]).intValue();
-            String source = (String) row[1];
-            Long count = ((Number) row[2]).longValue();
+        final Map<Long, String> finalHotelNameMap = hotelNameMap;
+        return results.stream().map(row -> {
+            Long hotelIdFromResult = ((Number) row[0]).longValue();
+            BigDecimal revenue = (BigDecimal) row[1];
+            String hotelName = finalHotelNameMap.getOrDefault(hotelIdFromResult, "Hotel " + hotelIdFromResult);
             
-            hourSourceMap.computeIfAbsent(hour, k -> new HashMap<>()).put(source, count);
-        }
+            return DashboardResponse.RevenueByHotel.builder()
+                    .hotelId(hotelIdFromResult)
+                    .hotelName(hotelName)
+                    .revenue(revenue != null ? revenue : BigDecimal.ZERO)
+                    .build();
+        }).collect(Collectors.toList());
+    }
 
-        List<DashboardResponse.BookingsBySource> bookingsBySource = new ArrayList<>();
-        for (int hour = 0; hour < 24; hour++) {
-            Map<String, Long> sourceMap = hourSourceMap.getOrDefault(hour, new HashMap<>());
-            bookingsBySource.add(DashboardResponse.BookingsBySource.builder()
-                    .hour(hour)
-                    .publicBookings(sourceMap.getOrDefault("PUBLIC", 0L))
-                    .walkInBookings(sourceMap.getOrDefault("WALK_IN", 0L))
-                    .build());
-        }
-        return bookingsBySource;
+    private List<DashboardResponse.RevenueTrend> buildRevenueTrend(Long hotelId) {
+        LocalDateTime endDate = LocalDateTime.now();
+        LocalDateTime startDate = endDate.minusDays(30);
+        
+        List<Object[]> results = billRepository.findRevenueTrend(startDate, endDate, hotelId);
+        
+        return results.stream().map(row -> {
+            LocalDate date = null;
+            if (row[0] != null) {
+                if (row[0] instanceof java.sql.Date) {
+                    date = ((java.sql.Date) row[0]).toLocalDate();
+                } else if (row[0] instanceof LocalDate) {
+                    date = (LocalDate) row[0];
+                } else if (row[0] instanceof java.sql.Timestamp) {
+                    date = ((java.sql.Timestamp) row[0]).toLocalDateTime().toLocalDate();
+                }
+            }
+            BigDecimal amount = (BigDecimal) row[1];
+            
+            return DashboardResponse.RevenueTrend.builder()
+                    .date(date != null ? date.format(DATE_FORMATTER) : "")
+                    .amount(amount != null ? amount : BigDecimal.ZERO)
+                    .build();
+        }).collect(Collectors.toList());
+    }
+
+    private List<DashboardResponse.BookingTrend> buildBookingTrend(Long hotelId) {
+        LocalDateTime endDate = LocalDateTime.now();
+        LocalDateTime startDate = endDate.minusDays(30);
+        
+        List<Object[]> results = bookingRepository.findBookingTrend(startDate, endDate, hotelId);
+        
+        return results.stream().map(row -> {
+            LocalDate date = null;
+            if (row[0] != null) {
+                if (row[0] instanceof java.sql.Date) {
+                    date = ((java.sql.Date) row[0]).toLocalDate();
+                } else if (row[0] instanceof LocalDate) {
+                    date = (LocalDate) row[0];
+                } else if (row[0] instanceof java.sql.Timestamp) {
+                    date = ((java.sql.Timestamp) row[0]).toLocalDateTime().toLocalDate();
+                }
+            }
+            Long count = ((Number) row[1]).longValue();
+            
+            return DashboardResponse.BookingTrend.builder()
+                    .date(date != null ? date.format(DATE_FORMATTER) : "")
+                    .count(count != null ? count : 0L)
+                    .build();
+        }).collect(Collectors.toList());
+    }
+
+    private List<DashboardResponse.BookingStatusDistribution> buildBookingStatusDistribution(Long hotelId) {
+        List<Object[]> results = bookingRepository.findBookingStatusDistribution(hotelId);
+        
+        return results.stream().map(row -> {
+            String status = (String) row[0];
+            Long count = ((Number) row[1]).longValue();
+            
+            return DashboardResponse.BookingStatusDistribution.builder()
+                    .status(status)
+                    .count(count != null ? count : 0L)
+                    .build();
+        }).collect(Collectors.toList());
     }
 }
 

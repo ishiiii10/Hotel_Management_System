@@ -46,6 +46,12 @@ public class Booking {
     @Column(name = "booking_source", length = 20)
     private String bookingSource;
 
+    @Column(name = "guest_name")
+    private String guestName;
+
+    @Column(name = "guest_email")
+    private String guestEmail;
+
     @Column(name = "created_at")
     private LocalDateTime createdAt;
 }

@@ -1,6 +1,7 @@
 package com.hotelbooking.hotel.dto.response;
 
 
+import java.io.Serializable;
 import java.time.LocalDateTime;
 
 import com.hotelbooking.hotel.enums.City;
@@ -13,7 +14,9 @@ import lombok.Getter;
 
 @Getter
 @AllArgsConstructor
-public class HotelDetailResponse {
+public class HotelDetailResponse implements Serializable {
+
+    private static final long serialVersionUID = 1L;
 
     private Long id;
     private String name;

@@ -1,6 +1,7 @@
 package com.hotelbooking.auth.controller;
 
 import java.util.List;
+
 import java.util.Map;
 
 import org.springframework.http.ResponseEntity;
@@ -80,5 +81,11 @@ public class AdminController {
     ) {
         userService.reassignStaffHotel(userId, hotelId);
         return ResponseEntity.noContent().build();
+    }
+
+    /* Get users by hotel ID */
+    @GetMapping("/users/hotel/{hotelId}")
+    public ResponseEntity<List<AdminUserResponse>> getUsersByHotelId(@PathVariable Long hotelId) {
+        return ResponseEntity.ok(userService.getUsersByHotelId(hotelId));
     }
 }

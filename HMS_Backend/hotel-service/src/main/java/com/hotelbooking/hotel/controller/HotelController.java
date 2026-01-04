@@ -25,6 +25,7 @@ import com.hotelbooking.hotel.feign.AuthServiceClient;
 import com.hotelbooking.hotel.repository.HotelRepository;
 import com.hotelbooking.hotel.service.HotelService;
 
+import jakarta.servlet.http.HttpServletRequest;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 
@@ -76,7 +77,44 @@ public class HotelController {
         ));
     }
 
-   
+    /**
+     * Get staff users for a hotel.
+     * Only ADMIN can view staff.
+     */
+    @GetMapping("/{hotelId}/staff")
+    public ResponseEntity<?> getStaffByHotelId(
+            @RequestHeader("X-User-Role") String role,
+            @PathVariable Long hotelId,
+            HttpServletRequest request
+    ) {
+        if (role == null || role.isEmpty()) {
+            role = request.getHeader("X-User-Role");
+        }
+        
+        if (role == null || role.isEmpty()) {
+            throw new IllegalStateException("Missing required header: X-User-Role");
+        }
+
+        // Only ADMIN can view staff
+        if (!"ADMIN".equalsIgnoreCase(role)) {
+            throw new IllegalStateException("Only ADMIN can view staff");
+        }
+
+        // Validate hotel exists
+        if (!hotelRepository.existsById(hotelId)) {
+            throw new IllegalStateException("Hotel not found: " + hotelId);
+        }
+
+        // Call Auth Service via Feign to get staff
+        List<Map<String, Object>> staff = authServiceClient.getUsersByHotelId(hotelId);
+
+        return ResponseEntity.ok(Map.of(
+                "success", true,
+                "message", "Staff retrieved successfully",
+                "data", staff
+        ));
+    }
+
     @GetMapping("/{hotelId}")
     public ResponseEntity<?> getHotelById(@PathVariable Long hotelId) {
 

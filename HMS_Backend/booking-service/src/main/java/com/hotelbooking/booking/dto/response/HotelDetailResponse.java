@@ -1,5 +1,6 @@
 package com.hotelbooking.booking.dto.response;
 
+import java.io.Serializable;
 import java.time.LocalDateTime;
 
 import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
@@ -14,24 +15,26 @@ import lombok.Setter;
 @NoArgsConstructor
 @AllArgsConstructor
 @JsonIgnoreProperties(ignoreUnknown = true)
-public class HotelDetailResponse {
+public class HotelDetailResponse implements Serializable {
+
+    private static final long serialVersionUID = 1L;
+
     private Long id;
     private String name;
-    private String category; // Jackson will deserialize enum as string
+    private String category;
     private String description;
     private String address;
-    private String city; // Jackson will deserialize enum as string
-    private String state; // Jackson will deserialize enum as string
+    private String city;
+    private String state;
     private String country;
     private String pincode;
     private String contactNumber;
     private String email;
     private Integer starRating;
     private String amenities;
-    private String status; // Jackson will deserialize enum as string
+    private String status;
     private Integer totalRooms;
     private Integer availableRooms;
     private LocalDateTime createdAt;
     private LocalDateTime updatedAt;
 }
-

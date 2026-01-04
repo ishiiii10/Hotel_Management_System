@@ -2,6 +2,8 @@ package com.hotelbooking.hotel.dto.response;
 
 
 
+import java.io.Serializable;
+
 import com.hotelbooking.hotel.enums.City;
 import com.hotelbooking.hotel.enums.HotelStatus;
 import com.hotelbooking.hotel.enums.Hotel_Category;
@@ -12,7 +14,9 @@ import lombok.Getter;
 
 @Getter
 @AllArgsConstructor
-public class HotelSearchResponse {
+public class HotelSearchResponse implements Serializable {
+
+    private static final long serialVersionUID = 1L;
 
     private Long id;
     private String name;
