@@ -5,6 +5,9 @@ package com.hotelbooking.hotel.service.impl;
 import java.time.LocalDate;
 import java.util.List;
 
+import org.springframework.cache.CacheManager;
+import org.springframework.cache.annotation.CacheEvict;
+import org.springframework.cache.annotation.Cacheable;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -29,9 +32,11 @@ public class RoomServiceImpl implements RoomService {
     private final RoomRepository roomRepository;
     private final RoomAvailabilityGenerator availabilityGenerator;
     private final RoomAvailabilityRepository availabilityRepository;
+    private final CacheManager cacheManager;
 
 
     @Override
+    @CacheEvict(value = "roomsByHotel", key = "#request.hotelId")
     public Long createRoom(CreateRoomRequest request) {
 
         if (roomRepository.existsByHotelIdAndRoomNumber(
@@ -71,6 +76,7 @@ public class RoomServiceImpl implements RoomService {
     
     @Override
     @Transactional(readOnly = true)
+    @Cacheable(value = "rooms", key = "#roomId", unless = "#result == null")
     public RoomResponse getRoomById(Long roomId) {
 
         Room room = roomRepository.findByIdAndIsActiveTrue(roomId)
@@ -95,6 +101,7 @@ public class RoomServiceImpl implements RoomService {
 
     @Override
     @Transactional(readOnly = true)
+    @Cacheable(value = "roomsByHotel", key = "#hotelId")
     public List<RoomResponse> getRoomsByHotel(Long hotelId) {
 
         return roomRepository.findByHotelId(hotelId)
@@ -104,10 +111,13 @@ public class RoomServiceImpl implements RoomService {
     }
 
     @Override
+    @CacheEvict(value = "rooms", key = "#roomId")
     public Long updateRoom(Long roomId, CreateRoomRequest request) {
 
         Room room = roomRepository.findById(roomId)
                 .orElseThrow(() -> new IllegalStateException("Room not found"));
+
+        Long oldHotelId = room.getHotelId();
 
         room.setRoomCategory(request.getRoomType());
         room.setPricePerNight(request.getPricePerNight());
@@ -121,29 +131,45 @@ public class RoomServiceImpl implements RoomService {
         room.setIsActive(request.getIsActive());
 
         roomRepository.save(room);
+        
+        // Evict roomsByHotel cache for old hotel and new hotel (if hotel changed)
+        evictRoomsByHotelCache(oldHotelId);
+        if (!oldHotelId.equals(request.getHotelId())) {
+            evictRoomsByHotelCache(request.getHotelId());
+        }
         return room.getId();
     }
 
     @Override
+    @CacheEvict(value = "rooms", key = "#roomId")
     public void updateRoomStatus(Long roomId, RoomStatus status) {
         Room room = roomRepository.findById(roomId)
                 .orElseThrow(() -> new IllegalStateException("Room not found"));
+        Long hotelId = room.getHotelId();
         room.setStatus(status);
         roomRepository.save(room);
 
         // Update RoomAvailability for future dates
         updateAvailabilityForRoomStatus(room, status, room.getIsActive());
+        
+        // Evict roomsByHotel cache for this hotel
+        evictRoomsByHotelCache(hotelId);
     }
 
     @Override
+    @CacheEvict(value = "rooms", key = "#roomId")
     public void updateRoomActiveStatus(Long roomId, boolean isActive) {
         Room room = roomRepository.findById(roomId)
                 .orElseThrow(() -> new IllegalStateException("Room not found"));
+        Long hotelId = room.getHotelId();
         room.setIsActive(isActive);
         roomRepository.save(room);
 
         // Update RoomAvailability for future dates
         updateAvailabilityForRoomStatus(room, room.getStatus(), isActive);
+        
+        // Evict roomsByHotel cache for this hotel
+        evictRoomsByHotelCache(hotelId);
     }
 
     private void updateAvailabilityForRoomStatus(Room room, RoomStatus status, boolean isActive) {
@@ -188,6 +214,7 @@ public class RoomServiceImpl implements RoomService {
 
     @Override
     @Transactional
+    @CacheEvict(value = "rooms", key = "#roomId")
     public void deleteRoom(Long roomId) {
 
         Room room = roomRepository.findById(roomId)
@@ -196,11 +223,23 @@ public class RoomServiceImpl implements RoomService {
         if (!room.getIsActive()) {
             throw new IllegalStateException("Room already deleted");
         }
+        
+        Long hotelId = room.getHotelId();
 
         room.setIsActive(false);
         room.setStatus(RoomStatus.INACTIVE);
 
         roomRepository.save(room);
+        
+        // Evict roomsByHotel cache for this hotel
+        evictRoomsByHotelCache(hotelId);
+    }
+    
+    private void evictRoomsByHotelCache(Long hotelId) {
+        var cache = cacheManager.getCache("roomsByHotel");
+        if (cache != null) {
+            cache.evict(hotelId);
+        }
     }
 }
     

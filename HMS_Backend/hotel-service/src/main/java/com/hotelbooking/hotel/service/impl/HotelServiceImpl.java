@@ -4,6 +4,8 @@ import java.time.LocalDate;
 import java.util.List;
 import java.util.Objects;
 
+import org.springframework.cache.annotation.CacheEvict;
+import org.springframework.cache.annotation.Cacheable;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -56,6 +58,7 @@ public class HotelServiceImpl implements HotelService {
     }
 
     @Override
+    @CacheEvict(value = "hotels", key = "#hotelId")
     public Long updateHotel(Long hotelId, CreateHotelRequest request) {
 
         Hotel hotel = hotelRepository.findById(hotelId)
@@ -84,6 +87,7 @@ public class HotelServiceImpl implements HotelService {
 
     @Override
     @Transactional(readOnly = true)
+    @Cacheable(value = "hotels", key = "#hotelId", unless = "#result == null")
     public HotelDetailResponse getHotelById(Long hotelId) {
 
         Hotel h = hotelRepository.findById(hotelId)
