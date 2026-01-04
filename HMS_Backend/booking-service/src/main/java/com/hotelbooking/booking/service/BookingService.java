@@ -7,6 +7,9 @@ import java.time.temporal.ChronoUnit;
 import java.util.List;
 import java.util.stream.Collectors;
 
+import org.springframework.cache.CacheManager;
+import org.springframework.cache.annotation.CacheEvict;
+import org.springframework.cache.annotation.Cacheable;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -36,6 +39,7 @@ public class BookingService {
     private final BookingRepository bookingRepository;
     private final HotelServiceClient hotelServiceClient;
     private final KafkaEventPublisher kafkaEventPublisher;
+    private final CacheManager cacheManager;
 
     /**
      * Check room availability for a hotel and date range.
@@ -175,6 +179,9 @@ public class BookingService {
                 .build();
         kafkaEventPublisher.publishBookingCreated(createdEvent);
 
+        // Evict caches
+        evictBookingCaches(booking.getId(), booking.getUserId(), booking.getHotelId());
+
         return toResponse(booking);
     }
 
@@ -207,6 +214,9 @@ public class BookingService {
                 .build();
         kafkaEventPublisher.publishBookingConfirmed(confirmedEvent);
 
+        // Evict caches
+        evictBookingCaches(booking.getId(), booking.getUserId(), booking.getHotelId());
+
         return toResponse(booking);
     }
 
@@ -214,6 +224,7 @@ public class BookingService {
      * Get booking by ID
      */
     @Transactional(readOnly = true)
+    @Cacheable(value = "bookings", key = "#bookingId", unless = "#result == null")
     public BookingResponse getBookingById(Long bookingId) {
         Booking booking = bookingRepository.findById(bookingId)
                 .orElseThrow(() -> new IllegalStateException("Booking not found"));
@@ -224,6 +235,7 @@ public class BookingService {
      * Get all bookings for current user
      */
     @Transactional(readOnly = true)
+    @Cacheable(value = "userBookings", key = "#userId")
     public List<BookingResponse> getMyBookings(Long userId) {
         return bookingRepository.findByUserId(userId)
                 .stream()
@@ -235,6 +247,7 @@ public class BookingService {
      * Get all bookings for a specific hotel (staff only)
      */
     @Transactional(readOnly = true)
+    @Cacheable(value = "hotelBookings", key = "#hotelId")
     public List<BookingResponse> getBookingsByHotel(Long hotelId) {
         return bookingRepository.findByHotelId(hotelId)
                 .stream()
@@ -293,6 +306,9 @@ public class BookingService {
                 .build();
         kafkaEventPublisher.publishBookingCancelled(cancelledEvent);
 
+        // Evict caches
+        evictBookingCaches(booking.getId(), booking.getUserId(), booking.getHotelId());
+
         return toResponse(booking);
     }
 
@@ -331,6 +347,9 @@ public class BookingService {
                 .guestName(booking.getGuestName())
                 .build();
         kafkaEventPublisher.publishGuestCheckedIn(checkedInEvent);
+
+        // Evict caches
+        evictBookingCaches(booking.getId(), booking.getUserId(), booking.getHotelId());
 
         return toResponse(booking);
     }
@@ -372,6 +391,9 @@ public class BookingService {
                 .build();
         kafkaEventPublisher.publishCheckoutCompleted(checkoutEvent);
 
+        // Evict caches
+        evictBookingCaches(booking.getId(), booking.getUserId(), booking.getHotelId());
+
         return toResponse(booking);
     }
 
@@ -395,6 +417,26 @@ public class BookingService {
                 .stream()
                 .map(this::toResponse)
                 .collect(Collectors.toList());
+    }
+
+    private void evictBookingCaches(Long bookingId, Long userId, Long hotelId) {
+        // Evict individual booking
+        var bookingCache = cacheManager.getCache("bookings");
+        if (bookingCache != null) {
+            bookingCache.evict(bookingId);
+        }
+        
+        // Evict user bookings list
+        var userBookingsCache = cacheManager.getCache("userBookings");
+        if (userBookingsCache != null) {
+            userBookingsCache.evict(userId);
+        }
+        
+        // Evict hotel bookings list
+        var hotelBookingsCache = cacheManager.getCache("hotelBookings");
+        if (hotelBookingsCache != null) {
+            hotelBookingsCache.evict(hotelId);
+        }
     }
 
     private BookingResponse toResponse(Booking booking) {
