@@ -4,6 +4,8 @@ import java.time.LocalDateTime;
 import java.util.List;
 import java.util.UUID;
 
+import org.springframework.cache.annotation.CacheEvict;
+import org.springframework.cache.annotation.Cacheable;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 
@@ -35,6 +37,7 @@ public class UserService {
 
     /* ---------------- Guest Registration ---------------- */
 
+    @CacheEvict(value = "users", allEntries = true)
     public User registerGuest(User user) {
         if (user.getRole() != Role.GUEST) {
             throw new IllegalArgumentException("Only GUEST users can self-register");
@@ -51,6 +54,7 @@ public class UserService {
     /* ---------------- Staff Creation ---------------- */
 
     @Transactional
+    @CacheEvict(value = "users", allEntries = true)
     public String createStaffUser(User user, Long hotelId) {
 
         if (user.getRole() != Role.MANAGER && user.getRole() != Role.RECEPTIONIST) {
@@ -165,6 +169,7 @@ public class UserService {
     }
     
     @Transactional
+    @CacheEvict(value = "users", key = "#userId")
     public void changePassword(Long userId, String currentPassword, String newPassword) {
 
         User user = userRepository.findById(userId)
@@ -184,6 +189,7 @@ public class UserService {
         userRepository.save(user);
     }
     
+    @Cacheable(value = "users", key = "#userId", unless = "#result == null")
     public User getUserById(Long userId) {
         return userRepository.findById(userId)
                 .orElseThrow(() -> new IllegalStateException("User not found"));
@@ -236,6 +242,7 @@ public class UserService {
     }
 
     @Transactional
+    @CacheEvict(value = "users", key = "#userId")
     public void reassignStaffHotel(Long userId, Long hotelId) {
 
         User user = userRepository.findById(userId)
