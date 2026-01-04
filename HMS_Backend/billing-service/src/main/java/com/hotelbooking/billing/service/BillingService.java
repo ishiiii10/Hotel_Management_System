@@ -201,8 +201,21 @@ public class BillingService {
 
         // Evict user payments cache
         evictUserPaymentsCache(bill.getUserId());
+        
+        // Also evict bill cache by bookingId
+        var billCache = cacheManager.getCache("bills");
+        if (billCache != null) {
+            billCache.evict(bill.getBookingId());
+        }
 
         return toBillResponse(bill);
+    }
+    
+    private void evictUserPaymentsCache(Long userId) {
+        var cache = cacheManager.getCache("userPayments");
+        if (cache != null) {
+            cache.evict(userId);
+        }
     }
 
     /**
