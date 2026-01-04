@@ -29,13 +29,21 @@ public class BookingEventListener {
     @KafkaListener(topics = "booking-confirmed", groupId = "billing-group")
     public void handleBookingConfirmed(ConsumerRecord<String, Object> record) {
         try {
+            log.info("Kafka listener triggered for booking-confirmed topic. Key: {}, Value type: {}", 
+                    record.key(), record.value() != null ? record.value().getClass().getName() : "null");
+            
             @SuppressWarnings("unchecked")
             Map<String, Object> payload = (Map<String, Object>) record.value();
             log.info("Received booking-confirmed event: {}", payload);
+            
             BookingConfirmedEvent event = objectMapper.convertValue(payload, BookingConfirmedEvent.class);
+            log.info("Converted to BookingConfirmedEvent. bookingId: {}", event.getBookingId());
+            
             billingService.generateBill(event);
+            log.info("Bill generation completed for bookingId: {}", event.getBookingId());
         } catch (Exception e) {
-            log.error("Error processing booking-confirmed event: {}", record.value(), e);
+            log.error("Error processing booking-confirmed event. Key: {}, Value: {}", 
+                    record.key(), record.value(), e);
         }
     }
 }

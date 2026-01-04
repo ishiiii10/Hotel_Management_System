@@ -51,6 +51,28 @@ public class BillingController {
     }
 
     /**
+     * Manually generate bill for a confirmed booking (for recovery/testing)
+     * Use this if the Kafka event was missed or bill generation failed
+     */
+    @PostMapping("/generate/{bookingId}")
+    public ResponseEntity<?> manuallyGenerateBill(
+            @RequestHeader("X-User-Role") String role,
+            @PathVariable Long bookingId
+    ) {
+        if (!"ADMIN".equalsIgnoreCase(role)) {
+            throw new IllegalStateException("Only ADMIN can manually generate bills");
+        }
+
+        BillResponse bill = billingService.manuallyGenerateBill(bookingId);
+
+        return ResponseEntity.ok(Map.of(
+                "success", true,
+                "message", "Bill generated successfully",
+                "data", bill
+        ));
+    }
+
+    /**
      * Mark bill as PAID (admin only)
      */
     @PostMapping("/{billId}/mark-paid")

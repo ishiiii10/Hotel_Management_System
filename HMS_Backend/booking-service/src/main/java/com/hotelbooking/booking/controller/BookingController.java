@@ -172,6 +172,31 @@ public class BookingController {
     }
 
     /**
+     * Confirm a booking (simulates payment completion).
+     * In production, this would be called by Payment Service after successful payment.
+     * For testing purposes, ADMIN/MANAGER can manually confirm bookings.
+     */
+    @PostMapping("/{bookingId}/confirm")
+    public ResponseEntity<?> confirmBooking(
+            @RequestHeader("X-User-Role") String role,
+            @PathVariable Long bookingId
+    ) {
+        // Only ADMIN or MANAGER can manually confirm bookings (for testing)
+        // In production, Payment Service would call this internally
+        if (!"ADMIN".equalsIgnoreCase(role) && !"MANAGER".equalsIgnoreCase(role)) {
+            throw new IllegalStateException("Only ADMIN or MANAGER can confirm bookings");
+        }
+
+        BookingResponse booking = bookingService.confirmBooking(bookingId);
+        
+        return ResponseEntity.ok(Map.of(
+                "success", true,
+                "message", "Booking confirmed successfully. Bill will be generated automatically.",
+                "data", booking
+        ));
+    }
+
+    /**
      * Cancel a booking.
      */
     @PostMapping("/{bookingId}/cancel")

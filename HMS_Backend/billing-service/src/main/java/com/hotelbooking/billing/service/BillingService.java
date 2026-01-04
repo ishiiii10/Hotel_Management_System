@@ -10,10 +10,12 @@ import org.springframework.transaction.annotation.Transactional;
 import com.hotelbooking.billing.domain.Bill;
 import com.hotelbooking.billing.domain.Payment;
 import com.hotelbooking.billing.dto.BookingConfirmedEvent;
+import com.hotelbooking.billing.dto.BookingInfoResponse;
 import com.hotelbooking.billing.dto.request.MarkBillPaidRequest;
 import com.hotelbooking.billing.dto.response.BillResponse;
 import com.hotelbooking.billing.dto.response.PaymentResponse;
 import com.hotelbooking.billing.enums.BillStatus;
+import com.hotelbooking.billing.feign.BookingServiceClient;
 import com.hotelbooking.billing.repository.BillRepository;
 import com.hotelbooking.billing.repository.PaymentRepository;
 
@@ -28,17 +30,23 @@ public class BillingService {
 
     private final BillRepository billRepository;
     private final PaymentRepository paymentRepository;
+    private final BookingServiceClient bookingServiceClient;
 
     /**
      * Generate bill when booking is confirmed
      */
     public void generateBill(BookingConfirmedEvent event) {
         try {
+            log.info("generateBill called for bookingId: {}", event.getBookingId());
+            
             // Check if bill already exists
             if (billRepository.findByBookingId(event.getBookingId()).isPresent()) {
                 log.warn("Bill already exists for bookingId: {}", event.getBookingId());
                 return;
             }
+
+            log.info("Creating new bill for bookingId: {}, amount: {}", 
+                    event.getBookingId(), event.getAmount());
 
             Bill bill = Bill.builder()
                     .bookingId(event.getBookingId())
@@ -52,9 +60,11 @@ public class BillingService {
                     .build();
 
             bill = billRepository.save(bill);
-            log.info("Bill generated for bookingId: {}, billId: {}", event.getBookingId(), bill.getId());
+            log.info("✅ Bill successfully generated! bookingId: {}, billId: {}, billNumber: {}", 
+                    event.getBookingId(), bill.getId(), bill.getBillNumber());
         } catch (Exception e) {
-            log.error("Error generating bill for bookingId: {}", event.getBookingId(), e);
+            log.error("❌ Error generating bill for bookingId: {}", event.getBookingId(), e);
+            throw new RuntimeException("Failed to generate bill for bookingId: " + event.getBookingId(), e);
         }
     }
 
@@ -63,8 +73,91 @@ public class BillingService {
      */
     @Transactional(readOnly = true)
     public BillResponse getBillByBookingId(Long bookingId) {
-        Bill bill = billRepository.findByBookingId(bookingId)
-                .orElseThrow(() -> new IllegalStateException("Bill not found for bookingId: " + bookingId));
+        // Check if bill exists
+        if (billRepository.findByBookingId(bookingId).isPresent()) {
+            Bill bill = billRepository.findByBookingId(bookingId).get();
+            return toBillResponse(bill);
+        }
+
+        // Bill doesn't exist - check booking status
+        try {
+            BookingInfoResponse booking = bookingServiceClient.getBookingById(bookingId);
+            if (booking == null) {
+                throw new IllegalStateException("Booking not found for bookingId: " + bookingId);
+            }
+
+            String status = booking.getStatus();
+            if (!"CONFIRMED".equalsIgnoreCase(status)) {
+                throw new IllegalStateException(
+                    "Bill not found for bookingId: " + bookingId + ". " +
+                    "Booking status is: " + status + ". " +
+                    "A bill is only generated when a booking is CONFIRMED. " +
+                    "Please confirm the booking first using POST /api/bookings/" + bookingId + "/confirm"
+                );
+            }
+
+            // Booking is confirmed but bill doesn't exist - this shouldn't happen
+            // but we'll provide a helpful message
+            throw new IllegalStateException(
+                "Bill not found for bookingId: " + bookingId + ". " +
+                "Booking is CONFIRMED but bill was not generated. " +
+                "This may indicate a Kafka event processing issue. " +
+                "You can manually generate the bill using POST /api/bills/generate/{bookingId}"
+            );
+        } catch (IllegalStateException e) {
+            throw e;
+        } catch (Exception e) {
+            log.error("Error checking booking status for bookingId: {}", bookingId, e);
+            throw new IllegalStateException(
+                "Bill not found for bookingId: " + bookingId + ". " +
+                "Unable to verify booking status. " +
+                "Please ensure the booking exists and is confirmed."
+            );
+        }
+    }
+
+    /**
+     * Manually generate bill for a confirmed booking (for recovery/testing)
+     */
+    public BillResponse manuallyGenerateBill(Long bookingId) {
+        // Check if bill already exists
+        if (billRepository.findByBookingId(bookingId).isPresent()) {
+            Bill existingBill = billRepository.findByBookingId(bookingId).get();
+            log.info("Bill already exists for bookingId: {}, billId: {}", bookingId, existingBill.getId());
+            return toBillResponse(existingBill);
+        }
+
+        // Get booking details
+        BookingInfoResponse booking = bookingServiceClient.getBookingById(bookingId);
+        if (booking == null) {
+            throw new IllegalStateException("Booking not found for bookingId: " + bookingId);
+        }
+
+        String status = booking.getStatus();
+        if (!"CONFIRMED".equalsIgnoreCase(status)) {
+            throw new IllegalStateException(
+                "Cannot generate bill for bookingId: " + bookingId + ". " +
+                "Booking status is: " + status + ". " +
+                "Only CONFIRMED bookings can have bills. " +
+                "Please confirm the booking first using POST /api/bookings/" + bookingId + "/confirm"
+            );
+        }
+
+        // Generate bill
+        Bill bill = Bill.builder()
+                .bookingId(booking.getId())
+                .userId(booking.getUserId())
+                .hotelId(booking.getHotelId())
+                .roomId(booking.getRoomId())
+                .checkInDate(booking.getCheckInDate())
+                .checkOutDate(booking.getCheckOutDate())
+                .totalAmount(booking.getTotalAmount())
+                .status(BillStatus.PENDING)
+                .build();
+
+        bill = billRepository.save(bill);
+        log.info("Manually generated bill for bookingId: {}, billId: {}", bookingId, bill.getId());
+
         return toBillResponse(bill);
     }
 
