@@ -37,6 +37,9 @@ jobs:
         working-directory: ./HMS_Backend
         run: mvn clean verify -DskipTests=false
 
+      # Note: If you get an error about "Automatic Analysis is enabled", 
+      # go to SonarCloud project settings and disable "Automatic Analysis" 
+      # under Administration > Analysis Method
       - name: SonarCloud Scan
         working-directory: ./HMS_Backend
         env:
