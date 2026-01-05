@@ -4,13 +4,9 @@ on:
   push:
     branches:
       - main
-      - master
-      - develop
   pull_request:
     branches:
       - main
-      - master
-      - develop
   workflow_dispatch:
 
 jobs:
@@ -54,14 +50,7 @@ jobs:
           mvn sonar:sonar \
             -Dsonar.projectKey=${{ secrets.SONAR_PROJECT_KEY }} \
             -Dsonar.organization=${{ secrets.SONAR_ORGANIZATION }} \
-            -Dsonar.host.url=https://sonarcloud.io \
-            -Dsonar.sources=src/main \
-            -Dsonar.tests=src/test \
-            -Dsonar.java.binaries=target/classes \
-            -Dsonar.coverage.jacoco.xmlReportPaths=target/site/jacoco/jacoco.xml \
-            -Dsonar.junit.reportsPath=target/surefire-reports \
-            -Dsonar.exclusions=**/*Application.class,**/config/**,**/dto/**,**/domain/**,**/entity/**,**/enums/**
-
+            -Dsonar.host.url=https://sonarcloud.io 
       - name: SonarCloud Quality Gate Check
         uses: sonarsource/sonarcloud-quality-gate-action@master
         env:

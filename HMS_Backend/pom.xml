@@ -84,16 +84,6 @@
                     <groupId>org.jacoco</groupId>
                     <artifactId>jacoco-maven-plugin</artifactId>
                     <version>0.8.11</version>
-                    <configuration>
-                        <excludes>
-                            <exclude>**/*Application.class</exclude>
-                            <exclude>**/config/**</exclude>
-                            <exclude>**/dto/**</exclude>
-                            <exclude>**/domain/**</exclude>
-                            <exclude>**/entity/**</exclude>
-                            <exclude>**/enums/**</exclude>
-                        </excludes>
-                    </configuration>
                     <executions>
                         <execution>
                             <id>prepare-agent</id>
