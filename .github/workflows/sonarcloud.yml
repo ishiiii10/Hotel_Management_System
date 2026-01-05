@@ -7,6 +7,7 @@ on:
   pull_request:
     branches:
       - main
+    types: [opened, synchronize, reopened]
   workflow_dispatch:
 
 jobs:
@@ -37,19 +38,15 @@ jobs:
         working-directory: ./HMS_Backend
         run: mvn clean verify -DskipTests=false
 
-      # Note: If you get an error about "Automatic Analysis is enabled", 
-      # go to SonarCloud project settings and disable "Automatic Analysis" 
-      # under Administration > Analysis Method
       - name: SonarCloud Scan
-        working-directory: ./HMS_Backend
+        uses: SonarSource/sonarcloud-github-action@master
         env:
-          SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-        run: |
-          mvn org.sonarsource.scanner.maven:sonar-maven-plugin:3.10.0.2594:sonar \
-            -Dsonar.projectKey=${{ secrets.SONAR_PROJECT_KEY }} \
-            -Dsonar.organization=${{ secrets.SONAR_ORGANIZATION }} \
-            -Dsonar.host.url=https://sonarcloud.io \
-            -Dsonar.login=${{ secrets.SONAR_TOKEN }} 
+          SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
+        with:
+          projectBaseDir: ./HMS_Backend
+          args: >
+            -Dsonar.projectKey=${{ secrets.SONAR_PROJECT_KEY }}
+            -Dsonar.organization=${{ secrets.SONAR_ORGANIZATION }} 
        
 
