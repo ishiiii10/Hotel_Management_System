@@ -17,12 +17,15 @@ import com.hotelbooking.billing.dto.response.BillResponse;
 import com.hotelbooking.billing.dto.response.PaymentResponse;
 import com.hotelbooking.billing.service.BillingService;
 
+import io.swagger.v3.oas.annotations.Operation;
+import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 
 @RestController
 @RequestMapping("/bills")
 @RequiredArgsConstructor
+@Tag(name = "Billing", description = "Billing Service API")
 public class BillingController {
 
     private final BillingService billingService;
@@ -30,6 +33,7 @@ public class BillingController {
     /**
      * Get bill by booking ID
      */
+    @Operation(summary = "Get bill by booking ID", description = "Retrieve bill information for a specific booking")
     @GetMapping("/booking/{bookingId}")
     public ResponseEntity<?> getBillByBookingId(
             @RequestHeader("X-User-Id") Long userId,
@@ -54,6 +58,7 @@ public class BillingController {
      * Manually generate bill for a confirmed booking (for recovery/testing)
      * Use this if the Kafka event was missed or bill generation failed
      */
+    @Operation(summary = "Manually generate bill", description = "Admin only - Manually generate a bill for a booking")
     @PostMapping("/generate/{bookingId}")
     public ResponseEntity<?> manuallyGenerateBill(
             @RequestHeader("X-User-Role") String role,
@@ -78,6 +83,7 @@ public class BillingController {
      * - GUEST can mark their own bills as paid (for public bookings)
      * This will automatically confirm the booking
      */
+    @Operation(summary = "Mark bill as paid", description = "Mark a bill as paid. Automatically confirms the booking.")
     @PostMapping("/{billId}/mark-paid")
     public ResponseEntity<?> markBillAsPaid(
             @RequestHeader("X-User-Id") Long userId,
@@ -115,6 +121,7 @@ public class BillingController {
     /**
      * Get all payments for current user
      */
+    @Operation(summary = "Get my payments", description = "Retrieve all payment records for the current user")
     @GetMapping("/my-payments")
     public ResponseEntity<?> getMyPayments(@RequestHeader("X-User-Id") Long userId) {
         List<PaymentResponse> payments = billingService.getMyPayments(userId);
@@ -128,6 +135,7 @@ public class BillingController {
     /**
      * Get all payments (admin only)
      */
+    @Operation(summary = "Get all payments", description = "Admin only - Retrieve all payment records")
     @GetMapping("/payments")
     public ResponseEntity<?> getAllPayments(@RequestHeader("X-User-Role") String role) {
         if (!"ADMIN".equalsIgnoreCase(role)) {
