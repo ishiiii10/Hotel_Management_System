@@ -16,6 +16,7 @@ import com.hotelbooking.hotel.dto.response.HotelSearchResponse;
 import com.hotelbooking.hotel.enums.City;
 import com.hotelbooking.hotel.enums.HotelStatus;
 import com.hotelbooking.hotel.enums.Hotel_Category;
+import com.hotelbooking.hotel.exception.HotelNotFoundException;
 import com.hotelbooking.hotel.repository.HotelRepository;
 import com.hotelbooking.hotel.repository.RoomRepository;
 import com.hotelbooking.hotel.service.HotelService;
@@ -62,7 +63,7 @@ public class HotelServiceImpl implements HotelService {
     public Long updateHotel(Long hotelId, CreateHotelRequest request) {
 
         Hotel hotel = hotelRepository.findById(hotelId)
-                .orElseThrow(() -> new IllegalStateException("Hotel not found"));
+                .orElseThrow(() -> new HotelNotFoundException(hotelId));
 
         hotel.setName(request.getName());
         hotel.setCategory(request.getCategory());
@@ -91,7 +92,7 @@ public class HotelServiceImpl implements HotelService {
     public HotelDetailResponse getHotelById(Long hotelId) {
 
         Hotel h = hotelRepository.findById(hotelId)
-                .orElseThrow(() -> new IllegalStateException("Hotel not found"));
+                .orElseThrow(() -> new HotelNotFoundException(hotelId));
 
         int totalRooms =
                 (int) roomRepository.countByHotelId(h.getId());

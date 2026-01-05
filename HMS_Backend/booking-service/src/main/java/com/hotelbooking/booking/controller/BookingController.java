@@ -22,6 +22,8 @@ import com.hotelbooking.booking.dto.request.CreateBookingRequest;
 import com.hotelbooking.booking.dto.request.WalkInBookingRequest;
 import com.hotelbooking.booking.dto.response.AvailabilityResponse;
 import com.hotelbooking.booking.dto.response.BookingResponse;
+import com.hotelbooking.booking.exception.AccessDeniedException;
+import com.hotelbooking.booking.exception.ValidationException;
 import com.hotelbooking.booking.service.BookingService;
 
 import jakarta.validation.Valid;
@@ -67,7 +69,7 @@ public class BookingController {
         // Role check: GUEST, MANAGER, ADMIN allowed
         if (!"GUEST".equalsIgnoreCase(role) && !"MANAGER".equalsIgnoreCase(role) 
                 && !"ADMIN".equalsIgnoreCase(role)) {
-            throw new IllegalStateException("Only GUEST, MANAGER, or ADMIN can create bookings");
+            throw new AccessDeniedException("Only GUEST, MANAGER, or ADMIN can create bookings");
         }
 
         // For now, use username as guest name if available
@@ -95,7 +97,7 @@ public class BookingController {
     ) {
         // Only RECEPTIONIST can create walk-in bookings
         if (!"RECEPTIONIST".equalsIgnoreCase(role)) {
-            throw new IllegalStateException("Only RECEPTIONIST can create walk-in bookings");
+            throw new AccessDeniedException("Only RECEPTIONIST can create walk-in bookings");
         }
 
         BookingResponse booking = bookingService.createWalkInBooking(request, userId, role);
@@ -122,7 +124,7 @@ public class BookingController {
         // Authorization: Users can only view their own bookings unless ADMIN/MANAGER
         if (!"ADMIN".equalsIgnoreCase(role) && !"MANAGER".equalsIgnoreCase(role) 
                 && !booking.getUserId().equals(userId)) {
-            throw new IllegalStateException("You can only view your own bookings");
+            throw new AccessDeniedException("You can only view your own bookings");
         }
 
         return ResponseEntity.ok(Map.of(
@@ -157,16 +159,16 @@ public class BookingController {
         // Only staff can view hotel bookings
         if (!"ADMIN".equalsIgnoreCase(role) && !"MANAGER".equalsIgnoreCase(role) 
                 && !"RECEPTIONIST".equalsIgnoreCase(role)) {
-            throw new IllegalStateException("Only staff can view hotel bookings");
+            throw new AccessDeniedException("Only staff can view hotel bookings");
         }
 
         // Context-aware: Staff can only view bookings for their own hotel
         if (!"ADMIN".equalsIgnoreCase(role)) {
             if (userHotelId == null) {
-                throw new IllegalStateException("User must be assigned to a hotel");
+                throw new ValidationException("User must be assigned to a hotel");
             }
             if (!hotelId.equals(userHotelId)) {
-                throw new IllegalStateException("You can only view bookings for your assigned hotel");
+                throw new AccessDeniedException("You can only view bookings for your assigned hotel");
             }
         }
 
@@ -184,7 +186,7 @@ public class BookingController {
     @GetMapping
     public ResponseEntity<?> getAllBookings(@RequestHeader("X-User-Role") String role) {
         if (!"ADMIN".equalsIgnoreCase(role)) {
-            throw new IllegalStateException("Only ADMIN can view all bookings");
+            throw new AccessDeniedException("Only ADMIN can view all bookings");
         }
 
         List<BookingResponse> bookings = bookingService.getAllBookings();
@@ -208,7 +210,7 @@ public class BookingController {
         // Only ADMIN or MANAGER can manually confirm bookings (for testing)
         // In production, Payment Service would call this internally
         if (!"ADMIN".equalsIgnoreCase(role) && !"MANAGER".equalsIgnoreCase(role)) {
-            throw new IllegalStateException("Only ADMIN or MANAGER can confirm bookings");
+            throw new AccessDeniedException("Only ADMIN or MANAGER can confirm bookings");
         }
 
         BookingResponse booking = bookingService.confirmBooking(bookingId);
@@ -254,7 +256,7 @@ public class BookingController {
         // Only staff can check in guests
         if (!"ADMIN".equalsIgnoreCase(role) && !"MANAGER".equalsIgnoreCase(role) 
                 && !"RECEPTIONIST".equalsIgnoreCase(role)) {
-            throw new IllegalStateException("Only staff can check in guests");
+            throw new AccessDeniedException("Only staff can check in guests");
         }
 
         if (request == null) {
@@ -284,7 +286,7 @@ public class BookingController {
         // Only staff can check out guests
         if (!"ADMIN".equalsIgnoreCase(role) && !"MANAGER".equalsIgnoreCase(role) 
                 && !"RECEPTIONIST".equalsIgnoreCase(role)) {
-            throw new IllegalStateException("Only staff can check out guests");
+            throw new AccessDeniedException("Only staff can check out guests");
         }
 
         if (request == null) {
@@ -313,16 +315,16 @@ public class BookingController {
         // Only staff can view today's check-ins
         if (!"ADMIN".equalsIgnoreCase(role) && !"MANAGER".equalsIgnoreCase(role) 
                 && !"RECEPTIONIST".equalsIgnoreCase(role)) {
-            throw new IllegalStateException("Only staff can view today's check-ins");
+            throw new AccessDeniedException("Only staff can view today's check-ins");
         }
 
         // Context-aware: Staff can only view for their own hotel
         if (!"ADMIN".equalsIgnoreCase(role)) {
             if (userHotelId == null) {
-                throw new IllegalStateException("User must be assigned to a hotel");
+                throw new ValidationException("User must be assigned to a hotel");
             }
             if (!hotelId.equals(userHotelId)) {
-                throw new IllegalStateException("You can only view check-ins for your assigned hotel");
+                throw new AccessDeniedException("You can only view check-ins for your assigned hotel");
             }
         }
 
@@ -347,16 +349,16 @@ public class BookingController {
         // Only staff can view today's check-outs
         if (!"ADMIN".equalsIgnoreCase(role) && !"MANAGER".equalsIgnoreCase(role) 
                 && !"RECEPTIONIST".equalsIgnoreCase(role)) {
-            throw new IllegalStateException("Only staff can view today's check-outs");
+            throw new AccessDeniedException("Only staff can view today's check-outs");
         }
 
         // Context-aware: Staff can only view for their own hotel
         if (!"ADMIN".equalsIgnoreCase(role)) {
             if (userHotelId == null) {
-                throw new IllegalStateException("User must be assigned to a hotel");
+                throw new ValidationException("User must be assigned to a hotel");
             }
             if (!hotelId.equals(userHotelId)) {
-                throw new IllegalStateException("You can only view check-outs for your assigned hotel");
+                throw new AccessDeniedException("You can only view check-outs for your assigned hotel");
             }
         }
 

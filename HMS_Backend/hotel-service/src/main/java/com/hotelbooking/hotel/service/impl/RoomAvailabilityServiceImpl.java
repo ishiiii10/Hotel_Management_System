@@ -11,6 +11,7 @@ import com.hotelbooking.hotel.dto.request.BlockRoomRequest;
 import com.hotelbooking.hotel.dto.request.UnblockRoomRequest;
 import com.hotelbooking.hotel.dto.response.AvailabilitySearchResponse;
 import com.hotelbooking.hotel.enums.AvailabilityStatus;
+import com.hotelbooking.hotel.exception.ValidationException;
 import com.hotelbooking.hotel.repository.RoomAvailabilityRepository;
 import com.hotelbooking.hotel.service.RoomAvailabilityService;
 
@@ -27,7 +28,7 @@ public class RoomAvailabilityServiceImpl implements RoomAvailabilityService {
     public void blockRoom(BlockRoomRequest request) {
 
         if (request.getFromDate().isAfter(request.getToDate())) {
-            throw new IllegalArgumentException("From date cannot be after To date");
+            throw new ValidationException("From date cannot be after To date");
         }
 
         LocalDate date = request.getFromDate();
@@ -58,7 +59,7 @@ public class RoomAvailabilityServiceImpl implements RoomAvailabilityService {
     public void unblockRoom(UnblockRoomRequest request) {
 
         if (request.getFromDate().isAfter(request.getToDate())) {
-            throw new IllegalArgumentException("From date cannot be after To date");
+            throw new ValidationException("From date cannot be after To date");
         }
 
         LocalDate date = request.getFromDate();
@@ -90,15 +91,15 @@ public class RoomAvailabilityServiceImpl implements RoomAvailabilityService {
     ) {
 
         if (checkIn == null || checkOut == null) {
-            throw new IllegalArgumentException("Check-in and check-out dates are required");
+            throw new ValidationException("Check-in and check-out dates are required");
         }
 
         if (!checkIn.isBefore(checkOut)) {
-            throw new IllegalArgumentException("Check-in must be before check-out");
+            throw new ValidationException("Check-in must be before check-out");
         }
 
         if (checkIn.isBefore(LocalDate.now())) {
-            throw new IllegalArgumentException("Check-in date cannot be in the past");
+            throw new ValidationException("Check-in date cannot be in the past");
         }
 
         // checkOut is exclusive in booking context (guest checks out on this date, doesn't stay)

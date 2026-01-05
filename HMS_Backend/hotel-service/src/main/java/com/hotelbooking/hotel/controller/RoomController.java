@@ -19,6 +19,7 @@ import org.springframework.web.bind.annotation.RestController;
 import com.hotelbooking.hotel.dto.request.CreateRoomRequest;
 import com.hotelbooking.hotel.dto.response.RoomResponse;
 import com.hotelbooking.hotel.enums.RoomStatus;
+import com.hotelbooking.hotel.exception.AccessDeniedException;
 import com.hotelbooking.hotel.service.RoomService;
 
 import jakarta.validation.Valid;
@@ -43,11 +44,11 @@ public class RoomController {
         
         // Context-aware authorization: Staff can only create rooms in their assigned hotel
         if (userHotelId == null && !"ADMIN".equalsIgnoreCase(role)) {
-            throw new IllegalStateException("User must be assigned to a hotel");
+            throw new AccessDeniedException("User must be assigned to a hotel");
         }
         
         if (!"ADMIN".equalsIgnoreCase(role) && !request.getHotelId().equals(userHotelId)) {
-            throw new IllegalStateException("Forbidden: Cannot create room for another hotel");
+            throw new AccessDeniedException("Forbidden: Cannot create room for another hotel");
         }
 
         Long id = roomService.createRoom(request);
@@ -94,12 +95,12 @@ public class RoomController {
         
         // Context-aware authorization: Staff can only delete rooms in their assigned hotel
         if (userHotelId == null && !"ADMIN".equalsIgnoreCase(role)) {
-            throw new IllegalStateException("User must be assigned to a hotel");
+            throw new AccessDeniedException("User must be assigned to a hotel");
         }
         
         RoomResponse room = roomService.getRoomById(id);
         if (!"ADMIN".equalsIgnoreCase(role) && !room.getHotelId().equals(userHotelId)) {
-            throw new IllegalStateException("Forbidden: Cannot delete room of another hotel");
+            throw new AccessDeniedException("Forbidden: Cannot delete room of another hotel");
         }
 
         roomService.deleteRoom(id);
@@ -124,13 +125,13 @@ public class RoomController {
         
         // Context-aware authorization: Staff can only modify rooms in their assigned hotel
         if (userHotelId == null && !"ADMIN".equalsIgnoreCase(role)) {
-            throw new IllegalStateException("User must be assigned to a hotel");
+            throw new AccessDeniedException("User must be assigned to a hotel");
         }
         
         // Fetch room to check hotelId
         RoomResponse room = roomService.getRoomById(roomId);
         if (!"ADMIN".equalsIgnoreCase(role) && !room.getHotelId().equals(userHotelId)) {
-            throw new IllegalStateException("Forbidden: Cannot modify room of another hotel");
+            throw new AccessDeniedException("Forbidden: Cannot modify room of another hotel");
         }
 
         Long id = roomService.updateRoom(roomId, request);
@@ -155,12 +156,12 @@ public class RoomController {
         
         // Context-aware authorization: Staff can only modify rooms in their assigned hotel
         if (userHotelId == null && !"ADMIN".equalsIgnoreCase(role)) {
-            throw new IllegalStateException("User must be assigned to a hotel");
+            throw new AccessDeniedException("User must be assigned to a hotel");
         }
         
         RoomResponse room = roomService.getRoomById(roomId);
         if (!"ADMIN".equalsIgnoreCase(role) && !room.getHotelId().equals(userHotelId)) {
-            throw new IllegalStateException("Forbidden: Cannot modify room of another hotel");
+            throw new AccessDeniedException("Forbidden: Cannot modify room of another hotel");
         }
 
         roomService.updateRoomStatus(roomId, status);
@@ -182,12 +183,12 @@ public class RoomController {
         
         // Context-aware authorization: Staff can only modify rooms in their assigned hotel
         if (userHotelId == null && !"ADMIN".equalsIgnoreCase(role)) {
-            throw new IllegalStateException("User must be assigned to a hotel");
+            throw new AccessDeniedException("User must be assigned to a hotel");
         }
         
         RoomResponse room = roomService.getRoomById(roomId);
         if (!"ADMIN".equalsIgnoreCase(role) && !room.getHotelId().equals(userHotelId)) {
-            throw new IllegalStateException("Forbidden: Cannot modify room of another hotel");
+            throw new AccessDeniedException("Forbidden: Cannot modify room of another hotel");
         }
 
         roomService.updateRoomActiveStatus(roomId, active);
@@ -200,13 +201,13 @@ public class RoomController {
 
     private void authorize(String role) {
         if (!role.equalsIgnoreCase("ADMIN") && !role.equalsIgnoreCase("MANAGER")) {
-            throw new IllegalStateException("Only ADMIN or MANAGER allowed");
+            throw new AccessDeniedException("Only ADMIN or MANAGER allowed");
         }
     }
 
     private void authorizeStatusChange(String role) {
         if (!role.equalsIgnoreCase("ADMIN") && !role.equalsIgnoreCase("MANAGER") && !role.equalsIgnoreCase("RECEPTIONIST")) {
-            throw new IllegalStateException("Only ADMIN, MANAGER, or RECEPTIONIST allowed to change room status");
+            throw new AccessDeniedException("Only ADMIN, MANAGER, or RECEPTIONIST allowed to change room status");
         }
     }
 }

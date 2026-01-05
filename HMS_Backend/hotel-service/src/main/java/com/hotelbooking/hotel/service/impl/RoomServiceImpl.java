@@ -17,6 +17,8 @@ import com.hotelbooking.hotel.dto.request.CreateRoomRequest;
 import com.hotelbooking.hotel.dto.response.RoomResponse;
 import com.hotelbooking.hotel.enums.AvailabilityStatus;
 import com.hotelbooking.hotel.enums.RoomStatus;
+import com.hotelbooking.hotel.exception.RoomAlreadyExistsException;
+import com.hotelbooking.hotel.exception.RoomNotFoundException;
 import com.hotelbooking.hotel.repository.RoomAvailabilityRepository;
 import com.hotelbooking.hotel.repository.RoomRepository;
 import com.hotelbooking.hotel.service.RoomService;
@@ -43,9 +45,7 @@ public class RoomServiceImpl implements RoomService {
                 request.getHotelId(),
                 request.getRoomNumber())) {
 
-            throw new IllegalStateException(
-                    "Room number " + request.getRoomNumber() + " already exists for this hotel"
-            );
+            throw new RoomAlreadyExistsException(request.getRoomNumber(), request.getHotelId());
         }
 
         Room room = Room.builder()
@@ -80,7 +80,7 @@ public class RoomServiceImpl implements RoomService {
     public RoomResponse getRoomById(Long roomId) {
 
         Room room = roomRepository.findByIdAndIsActiveTrue(roomId)
-                .orElseThrow(() -> new IllegalStateException("Room not found"));
+                .orElseThrow(() -> new RoomNotFoundException(roomId));
 
         return new RoomResponse(
                 room.getId(),
@@ -115,7 +115,7 @@ public class RoomServiceImpl implements RoomService {
     public Long updateRoom(Long roomId, CreateRoomRequest request) {
 
         Room room = roomRepository.findById(roomId)
-                .orElseThrow(() -> new IllegalStateException("Room not found"));
+                .orElseThrow(() -> new RoomNotFoundException(roomId));
 
         Long oldHotelId = room.getHotelId();
 
@@ -144,7 +144,7 @@ public class RoomServiceImpl implements RoomService {
     @CacheEvict(value = "rooms", key = "#roomId")
     public void updateRoomStatus(Long roomId, RoomStatus status) {
         Room room = roomRepository.findById(roomId)
-                .orElseThrow(() -> new IllegalStateException("Room not found"));
+                .orElseThrow(() -> new RoomNotFoundException(roomId));
         Long hotelId = room.getHotelId();
         room.setStatus(status);
         roomRepository.save(room);
@@ -160,7 +160,7 @@ public class RoomServiceImpl implements RoomService {
     @CacheEvict(value = "rooms", key = "#roomId")
     public void updateRoomActiveStatus(Long roomId, boolean isActive) {
         Room room = roomRepository.findById(roomId)
-                .orElseThrow(() -> new IllegalStateException("Room not found"));
+                .orElseThrow(() -> new RoomNotFoundException(roomId));
         Long hotelId = room.getHotelId();
         room.setIsActive(isActive);
         roomRepository.save(room);
@@ -218,10 +218,10 @@ public class RoomServiceImpl implements RoomService {
     public void deleteRoom(Long roomId) {
 
         Room room = roomRepository.findById(roomId)
-                .orElseThrow(() -> new IllegalStateException("Room not found"));
+                .orElseThrow(() -> new RoomNotFoundException(roomId));
 
         if (!room.getIsActive()) {
-            throw new IllegalStateException("Room already deleted");
+            throw new RoomNotFoundException("Room already deleted");
         }
         
         Long hotelId = room.getHotelId();

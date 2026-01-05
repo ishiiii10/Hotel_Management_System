@@ -16,6 +16,7 @@ import org.springframework.web.bind.annotation.RestController;
 
 import com.hotelbooking.hotel.dto.request.BlockRoomRequest;
 import com.hotelbooking.hotel.dto.request.UnblockRoomRequest;
+import com.hotelbooking.hotel.exception.AccessDeniedException;
 import com.hotelbooking.hotel.service.RoomAvailabilityService;
 
 import jakarta.validation.Valid;
@@ -37,16 +38,16 @@ public class RoomAvailabilityController {
     ) {
         if (!role.equalsIgnoreCase("ADMIN")
                 && !role.equalsIgnoreCase("MANAGER")) {
-            throw new IllegalStateException("Only ADMIN or MANAGER can block rooms");
+            throw new AccessDeniedException("Only ADMIN or MANAGER can block rooms");
         }
 
         // Context-aware authorization: MANAGER can only block rooms in their assigned hotel
         if ("MANAGER".equalsIgnoreCase(role)) {
             if (userHotelId == null) {
-                throw new IllegalStateException("MANAGER must be assigned to a hotel");
+                throw new AccessDeniedException("MANAGER must be assigned to a hotel");
             }
             if (!request.getHotelId().equals(userHotelId)) {
-                throw new IllegalStateException("Forbidden: Cannot block room of another hotel");
+                throw new AccessDeniedException("Forbidden: Cannot block room of another hotel");
             }
         }
 
@@ -69,10 +70,10 @@ public class RoomAvailabilityController {
         // Context-aware authorization: MANAGER can only unblock rooms in their assigned hotel
         if ("MANAGER".equalsIgnoreCase(role)) {
             if (userHotelId == null) {
-                throw new IllegalStateException("MANAGER must be assigned to a hotel");
+                throw new AccessDeniedException("MANAGER must be assigned to a hotel");
             }
             if (!request.getHotelId().equals(userHotelId)) {
-                throw new IllegalStateException("Forbidden: Cannot unblock room of another hotel");
+                throw new AccessDeniedException("Forbidden: Cannot unblock room of another hotel");
             }
         }
         
@@ -87,7 +88,7 @@ public class RoomAvailabilityController {
     private void authorize(String role) {
         if (!role.equalsIgnoreCase("ADMIN")
                 && !role.equalsIgnoreCase("MANAGER")) {
-            throw new IllegalStateException("Only ADMIN or MANAGER allowed");
+            throw new AccessDeniedException("Only ADMIN or MANAGER allowed");
         }
     }
     

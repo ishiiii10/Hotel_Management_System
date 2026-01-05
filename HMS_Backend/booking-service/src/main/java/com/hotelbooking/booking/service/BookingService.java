@@ -25,6 +25,11 @@ import com.hotelbooking.booking.dto.response.BookingResponse;
 import com.hotelbooking.booking.dto.response.HotelDetailResponse;
 import com.hotelbooking.booking.dto.response.RoomResponse;
 import com.hotelbooking.booking.enums.BookingStatus;
+import com.hotelbooking.booking.exception.BookingNotFoundException;
+import com.hotelbooking.booking.exception.InvalidBookingStatusException;
+import com.hotelbooking.booking.exception.RoomNotAvailableException;
+import com.hotelbooking.booking.exception.ValidationException;
+import com.hotelbooking.booking.exception.AccessDeniedException;
 import com.hotelbooking.booking.feign.HotelServiceClient;
 import com.hotelbooking.booking.repository.BookingRepository;
 
@@ -52,13 +57,13 @@ public class BookingService {
     public AvailabilityResponse checkAvailability(Long hotelId, LocalDate checkIn, LocalDate checkOut) {
         // Validate dates
         if (checkIn == null || checkOut == null) {
-            throw new IllegalArgumentException("Check-in and check-out dates are required");
+            throw new ValidationException("Check-in and check-out dates are required");
         }
         if (!checkIn.isBefore(checkOut)) {
-            throw new IllegalArgumentException("Check-in must be before check-out");
+            throw new ValidationException("Check-in must be before check-out");
         }
         if (checkIn.isBefore(LocalDate.now())) {
-            throw new IllegalArgumentException("Check-in date cannot be in the past");
+            throw new ValidationException("Check-in date cannot be in the past");
         }
 
         // Step 3a: Get all rooms from Hotel Service
@@ -124,20 +129,20 @@ public class BookingService {
         HotelDetailResponse hotel = hotelServiceClient.getHotelById(request.getHotelId());
         String hotelStatus = hotel.getStatus();
         if (hotelStatus == null || !"ACTIVE".equalsIgnoreCase(hotelStatus)) {
-            throw new IllegalStateException("Hotel is not active");
+            throw new ValidationException("Hotel is not active");
         }
 
         // Get room details
         RoomResponse room = hotelServiceClient.getRoomById(request.getRoomId());
         if (!room.getHotelId().equals(request.getHotelId())) {
-            throw new IllegalStateException("Room does not belong to the specified hotel");
+            throw new ValidationException("Room does not belong to the specified hotel");
         }
         if (room.getIsActive() == null || !room.getIsActive()) {
-            throw new IllegalStateException("Room is not active");
+            throw new RoomNotAvailableException("Room is not active");
         }
         String roomStatus = room.getStatus();
         if (roomStatus == null || !"AVAILABLE".equalsIgnoreCase(roomStatus)) {
-            throw new IllegalStateException("Room is not available");
+            throw new RoomNotAvailableException("Room is not available");
         }
 
         // Step 5a: Double-check availability (prevent race condition)
@@ -148,7 +153,7 @@ public class BookingService {
                 request.getCheckOutDate()
         );
         if (!overlappingBookings.isEmpty()) {
-            throw new IllegalStateException("Room is not available for the selected dates");
+            throw new RoomNotAvailableException("Room is not available for the selected dates");
         }
 
         // Calculate total amount
@@ -210,10 +215,10 @@ public class BookingService {
      */
     public BookingResponse confirmBooking(Long bookingId) {
         Booking booking = bookingRepository.findById(bookingId)
-                .orElseThrow(() -> new IllegalStateException("Booking not found"));
+                .orElseThrow(() -> new BookingNotFoundException(bookingId));
 
         if (booking.getStatus() != BookingStatus.CREATED) {
-            throw new IllegalStateException("Only CREATED bookings can be confirmed");
+            throw new InvalidBookingStatusException(booking.getStatus(), "confirm");
         }
 
         booking.setStatus(BookingStatus.CONFIRMED);
@@ -247,7 +252,7 @@ public class BookingService {
     @Cacheable(value = "bookings", key = "#bookingId", unless = "#result == null")
     public BookingResponse getBookingById(Long bookingId) {
         Booking booking = bookingRepository.findById(bookingId)
-                .orElseThrow(() -> new IllegalStateException("Booking not found"));
+                .orElseThrow(() -> new BookingNotFoundException(bookingId));
         return toResponse(booking);
     }
 
@@ -291,19 +296,19 @@ public class BookingService {
      */
     public BookingResponse cancelBooking(Long bookingId, Long userId, String role, CancelBookingRequest request) {
         Booking booking = bookingRepository.findById(bookingId)
-                .orElseThrow(() -> new IllegalStateException("Booking not found"));
+                .orElseThrow(() -> new BookingNotFoundException(bookingId));
 
         // Check ownership (GUEST can only cancel their own bookings, ADMIN can cancel any)
         if (!"ADMIN".equalsIgnoreCase(role) && !booking.getUserId().equals(userId)) {
-            throw new IllegalStateException("You can only cancel your own bookings");
+            throw new AccessDeniedException("You can only cancel your own bookings");
         }
 
         // Check if booking can be cancelled
         if (booking.getStatus() == BookingStatus.CANCELLED) {
-            throw new IllegalStateException("Booking is already cancelled");
+            throw new InvalidBookingStatusException(booking.getStatus(), "cancel");
         }
         if (booking.getStatus() == BookingStatus.CHECKED_IN || booking.getStatus() == BookingStatus.CHECKED_OUT) {
-            throw new IllegalStateException("Cannot cancel a booking that has been checked in");
+            throw new InvalidBookingStatusException(booking.getStatus(), "cancel");
         }
 
         booking.setStatus(BookingStatus.CANCELLED);
@@ -337,16 +342,16 @@ public class BookingService {
      */
     public BookingResponse checkIn(Long bookingId, Long hotelId, CheckInRequest request) {
         Booking booking = bookingRepository.findById(bookingId)
-                .orElseThrow(() -> new IllegalStateException("Booking not found"));
+                .orElseThrow(() -> new BookingNotFoundException(bookingId));
 
         // Verify hotel ownership
         if (!booking.getHotelId().equals(hotelId)) {
-            throw new IllegalStateException("Booking does not belong to this hotel");
+            throw new AccessDeniedException("Booking does not belong to this hotel");
         }
 
         // Check if booking can be checked in
         if (booking.getStatus() != BookingStatus.CONFIRMED) {
-            throw new IllegalStateException("Only CONFIRMED bookings can be checked in");
+            throw new InvalidBookingStatusException(booking.getStatus(), "check in");
         }
 
         LocalDateTime checkInTimestamp = java.time.LocalDateTime.now();
@@ -379,16 +384,16 @@ public class BookingService {
      */
     public BookingResponse checkOut(Long bookingId, Long hotelId, CheckOutRequest request) {
         Booking booking = bookingRepository.findById(bookingId)
-                .orElseThrow(() -> new IllegalStateException("Booking not found"));
+                .orElseThrow(() -> new BookingNotFoundException(bookingId));
 
         // Verify hotel ownership
         if (!booking.getHotelId().equals(hotelId)) {
-            throw new IllegalStateException("Booking does not belong to this hotel");
+            throw new AccessDeniedException("Booking does not belong to this hotel");
         }
 
         // Check if booking can be checked out
         if (booking.getStatus() != BookingStatus.CHECKED_IN) {
-            throw new IllegalStateException("Only CHECKED_IN bookings can be checked out");
+            throw new InvalidBookingStatusException(booking.getStatus(), "check out");
         }
 
         LocalDateTime checkoutTimestamp = java.time.LocalDateTime.now();

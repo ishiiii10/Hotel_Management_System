@@ -21,6 +21,9 @@ import com.hotelbooking.hotel.dto.response.HotelDetailResponse;
 import com.hotelbooking.hotel.dto.response.HotelSearchResponse;
 import com.hotelbooking.hotel.enums.City;
 import com.hotelbooking.hotel.enums.Hotel_Category;
+import com.hotelbooking.hotel.exception.AccessDeniedException;
+import com.hotelbooking.hotel.exception.HotelNotFoundException;
+import com.hotelbooking.hotel.exception.ValidationException;
 import com.hotelbooking.hotel.feign.AuthServiceClient;
 import com.hotelbooking.hotel.repository.HotelRepository;
 import com.hotelbooking.hotel.service.HotelService;
@@ -37,7 +40,7 @@ public class HotelController {
     @GetMapping("/my-hotel")
     public ResponseEntity<?> getMyHotel(@RequestHeader(value = "X-Hotel-Id", required = false) Long userHotelId) {
         if (userHotelId == null) {
-            throw new IllegalStateException("User must be assigned to a hotel");
+            throw new AccessDeniedException("User must be assigned to a hotel");
         }
         HotelDetailResponse hotel = hotelService.getHotelById(userHotelId);
         return ResponseEntity.ok(Map.of(
@@ -67,7 +70,7 @@ public class HotelController {
         } else if (category != null) {
             response = hotelService.searchHotelsByCategory(category);
         } else {
-            throw new IllegalArgumentException("Either city or category must be provided");
+            throw new ValidationException("Either city or category must be provided");
         }
 
         return ResponseEntity.ok(Map.of(
@@ -92,17 +95,17 @@ public class HotelController {
         }
         
         if (role == null || role.isEmpty()) {
-            throw new IllegalStateException("Missing required header: X-User-Role");
+            throw new ValidationException("Missing required header: X-User-Role");
         }
 
         // Only ADMIN can view staff
         if (!"ADMIN".equalsIgnoreCase(role)) {
-            throw new IllegalStateException("Only ADMIN can view staff");
+            throw new AccessDeniedException("Only ADMIN can view staff");
         }
 
         // Validate hotel exists
         if (!hotelRepository.existsById(hotelId)) {
-            throw new IllegalStateException("Hotel not found: " + hotelId);
+            throw new HotelNotFoundException(hotelId);
         }
 
         // Call Auth Service via Feign to get staff
@@ -136,7 +139,7 @@ public class HotelController {
     ) {
 
         if (!"ADMIN".equalsIgnoreCase(role)) {
-            throw new IllegalStateException("Only ADMIN can create hotels");
+            throw new AccessDeniedException("Only ADMIN can create hotels");
         }
 
         Long id = hotelService.createHotel(request);
@@ -158,16 +161,16 @@ public class HotelController {
     ) {
 
         if (!"ADMIN".equalsIgnoreCase(role) && !"MANAGER".equalsIgnoreCase(role)) {
-            throw new IllegalStateException("Only ADMIN or MANAGER can update hotels");
+            throw new AccessDeniedException("Only ADMIN or MANAGER can update hotels");
         }
 
         // Context-aware authorization: MANAGER can only update their own hotel
         if ("MANAGER".equalsIgnoreCase(role)) {
             if (userHotelId == null) {
-                throw new IllegalStateException("MANAGER must be assigned to a hotel");
+                throw new AccessDeniedException("MANAGER must be assigned to a hotel");
             }
             if (!hotelId.equals(userHotelId)) {
-                throw new IllegalStateException("Forbidden: MANAGER can only update their assigned hotel");
+                throw new AccessDeniedException("Forbidden: MANAGER can only update their assigned hotel");
             }
         }
 
@@ -187,7 +190,7 @@ public class HotelController {
     ) {
 
         if (!"ADMIN".equalsIgnoreCase(role)) {
-            throw new IllegalStateException("Only ADMIN can view all hotels");
+            throw new AccessDeniedException("Only ADMIN can view all hotels");
         }
 
         List<HotelDetailResponse> hotels = hotelService.getAllHotels();
@@ -211,12 +214,12 @@ public class HotelController {
     ) {
         // Only ADMIN can create staff
         if (!"ADMIN".equalsIgnoreCase(role)) {
-            throw new IllegalStateException("Only ADMIN can create staff");
+            throw new AccessDeniedException("Only ADMIN can create staff");
         }
 
         // Validate hotel exists
         if (!hotelRepository.existsById(hotelId)) {
-            throw new IllegalStateException("Hotel not found: " + hotelId);
+            throw new HotelNotFoundException(hotelId);
         }
 
         // Build CreateStaffRequest with hotelId from path variable
