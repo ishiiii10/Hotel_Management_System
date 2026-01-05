@@ -11,6 +11,5 @@ public enum Hotel_Category {
     HOSTEL,
     GUEST_HOUSE,
     HOMESTAY,
-    SERVICED_APARTMENT,
-    BOUTIQUE_HOTEL,
+    BOUTIQUE,
 }
