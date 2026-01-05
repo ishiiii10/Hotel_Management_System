@@ -73,17 +73,34 @@ public class BillingController {
     }
 
     /**
-     * Mark bill as PAID (admin only)
+     * Mark bill as PAID
+     * - ADMIN/RECEPTIONIST/MANAGER can mark any bill as paid
+     * - GUEST can mark their own bills as paid (for public bookings)
+     * This will automatically confirm the booking
      */
     @PostMapping("/{billId}/mark-paid")
     public ResponseEntity<?> markBillAsPaid(
+            @RequestHeader("X-User-Id") Long userId,
             @RequestHeader("X-User-Role") String role,
             @RequestHeader("X-User-Username") String username,
             @PathVariable Long billId,
             @Valid @RequestBody MarkBillPaidRequest request
     ) {
-        if (!"ADMIN".equalsIgnoreCase(role)) {
-            throw new IllegalStateException("Only ADMIN can mark bills as paid");
+        // Allow ADMIN, RECEPTIONIST, MANAGER, and GUEST (for their own bills)
+        boolean isStaff = "ADMIN".equalsIgnoreCase(role) || "RECEPTIONIST".equalsIgnoreCase(role) 
+                || "MANAGER".equalsIgnoreCase(role);
+        
+        if (!isStaff && !"GUEST".equalsIgnoreCase(role)) {
+            throw new IllegalStateException("Only ADMIN, RECEPTIONIST, MANAGER, or GUEST can mark bills as paid");
+        }
+        
+        // If GUEST, verify they own the bill
+        if ("GUEST".equalsIgnoreCase(role)) {
+            // Get bill to verify ownership
+            BillResponse existingBill = billingService.getBillById(billId);
+            if (!existingBill.getUserId().equals(userId)) {
+                throw new IllegalStateException("You can only pay your own bills");
+            }
         }
 
         BillResponse bill = billingService.markBillAsPaid(billId, username, request);

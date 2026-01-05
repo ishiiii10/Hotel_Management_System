@@ -44,4 +44,5 @@ public class BookingResponse implements Serializable {
     private LocalDateTime checkedOutAt;
     private LocalDateTime createdAt;
     private LocalDateTime updatedAt;
+    private String bookingSource; // WALK_IN or PUBLIC
 }

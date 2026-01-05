@@ -15,6 +15,7 @@ import com.hotelbooking.auth.domain.User;
 import com.hotelbooking.auth.domain.UserHotelAssignment;
 import com.hotelbooking.auth.dto.AdminUserResponse;
 import com.hotelbooking.auth.dto.UserResponse;
+import com.hotelbooking.auth.dto.StaffUpdateRequest;
 import com.hotelbooking.auth.exception.AccountDisabledException;
 import com.hotelbooking.auth.exception.CredentialsExpiredException;
 import com.hotelbooking.auth.exception.InsufficientRoleException;
@@ -269,6 +270,20 @@ public class UserService {
 
     @Transactional
     @CacheEvict(value = "users", key = "#userId")
+    public void activateUser(Long userId) {
+        User user = userRepository.findById(userId)
+                .orElseThrow(() -> new UserNotFoundException());
+
+        if (user.isEnabled()) {
+            throw new ValidationException("User is already activated");
+        }
+
+        user.setEnabled(true);
+        userRepository.save(user);
+    }
+
+    @Transactional
+    @CacheEvict(value = "users", key = "#userId")
     public void reassignStaffHotel(Long userId, Long hotelId) {
 
         User user = userRepository.findById(userId)
@@ -293,6 +308,62 @@ public class UserService {
 
         assignment.setHotelId(hotelId);
         userHotelAssignmentRepository.save(assignment);
+    }
+
+    @Transactional
+    @CacheEvict(value = "users", key = "#userId")
+    public User updateStaff(Long userId, String fullName, String username, String email, Long hotelId) {
+        User user = userRepository.findById(userId)
+                .orElseThrow(() -> new UserNotFoundException());
+
+        if (user.getRole() != Role.MANAGER && user.getRole() != Role.RECEPTIONIST) {
+            throw new ValidationException("Only staff users can be updated through this endpoint");
+        }
+
+        // Check if email is being changed and if new email already exists
+        if (!user.getEmail().equals(email)) {
+            if (userRepository.findByEmail(email).isPresent()) {
+                throw new UserAlreadyExistsException("email", email);
+            }
+        }
+
+        // Check if username is being changed and if new username already exists
+        if (!user.getUsername().equals(username)) {
+            if (userRepository.findByUsername(username).isPresent()) {
+                throw new UserAlreadyExistsException("username", username);
+            }
+        }
+
+        user.setFullName(fullName);
+        user.setUsername(username);
+        user.setEmail(email);
+
+        // Update hotel assignment if provided
+        if (hotelId != null) {
+            user.setHotelId(hotelId);
+            // Also update UserHotelAssignment for backward compatibility
+            userHotelAssignmentRepository.findOneByUserId(userId)
+                    .ifPresentOrElse(
+                            assignment -> {
+                                assignment.setHotelId(hotelId);
+                                userHotelAssignmentRepository.save(assignment);
+                            },
+                            () -> {
+                                UserHotelAssignment newAssignment = UserHotelAssignment.builder()
+                                        .userId(user.getId())
+                                        .hotelId(hotelId)
+                                        .build();
+                                userHotelAssignmentRepository.save(newAssignment);
+                            }
+                    );
+        } else {
+            // Remove hotel assignment if hotelId is null
+            user.setHotelId(null);
+            userHotelAssignmentRepository.findOneByUserId(userId)
+                    .ifPresent(assignment -> userHotelAssignmentRepository.delete(assignment));
+        }
+
+        return userRepository.save(user);
     }
 
     /* ---------------- Helpers ---------------- */

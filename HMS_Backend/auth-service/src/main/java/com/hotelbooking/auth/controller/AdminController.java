@@ -11,6 +11,7 @@ import com.hotelbooking.auth.domain.Role;
 import com.hotelbooking.auth.domain.User;
 import com.hotelbooking.auth.dto.AdminUserResponse;
 import com.hotelbooking.auth.dto.StaffCreateRequest;
+import com.hotelbooking.auth.dto.StaffUpdateRequest;
 import com.hotelbooking.auth.exception.InsufficientRoleException;
 import com.hotelbooking.auth.exception.ValidationException;
 import com.hotelbooking.auth.service.UserService;
@@ -73,6 +74,15 @@ public class AdminController {
         return ResponseEntity.noContent().build();
     }
 
+    /* Activate user */
+    @PatchMapping("/users/{userId}/activate")
+    public ResponseEntity<Void> activateUser(
+            @PathVariable Long userId
+    ) {
+        userService.activateUser(userId);
+        return ResponseEntity.noContent().build();
+    }
+
     /* Reassign staff to hotel */
     @PutMapping("/staff/{userId}/hotel-allotment")
     public ResponseEntity<Void> reassignHotel(
@@ -87,5 +97,38 @@ public class AdminController {
     @GetMapping("/users/hotel/{hotelId}")
     public ResponseEntity<List<AdminUserResponse>> getUsersByHotelId(@PathVariable Long hotelId) {
         return ResponseEntity.ok(userService.getUsersByHotelId(hotelId));
+    }
+
+    /* Update staff details */
+    @PutMapping("/staff/{userId}")
+    public ResponseEntity<AdminUserResponse> updateStaff(
+            @PathVariable Long userId,
+            @Valid @RequestBody StaffUpdateRequest request
+    ) {
+        User updatedUser = userService.updateStaff(
+                userId,
+                request.getFullName(),
+                request.getUsername(),
+                request.getEmail(),
+                request.getHotelId()
+        );
+
+        Long hotelId = updatedUser.getHotelId();
+        if (hotelId == null && (updatedUser.getRole() == Role.MANAGER || updatedUser.getRole() == Role.RECEPTIONIST)) {
+            hotelId = userService.getAssignedHotelId(updatedUser.getId());
+        }
+
+        AdminUserResponse response = new AdminUserResponse(
+                updatedUser.getId(),
+                updatedUser.getPublicUserId(),
+                updatedUser.getUsername(),
+                updatedUser.getFullName(),
+                updatedUser.getEmail(),
+                updatedUser.getRole(),
+                updatedUser.isEnabled(),
+                hotelId
+        );
+
+        return ResponseEntity.ok(response);
     }
 }

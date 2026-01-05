@@ -26,5 +26,6 @@ public class BookingCreatedEvent implements Serializable {
     private Double amount;
     private String guestEmail;
     private String guestName;
+    private String bookingSource; // WALK_IN or PUBLIC
 }
 

@@ -2,6 +2,7 @@ package com.hotelbooking.booking.controller;
 
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
+import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 
@@ -24,6 +25,14 @@ public class InternalBookingController {
     @GetMapping("/{bookingId}")
     public BookingResponse getBookingById(@PathVariable Long bookingId) {
         return bookingService.getBookingById(bookingId);
+    }
+
+    /**
+     * Internal endpoint to confirm booking (called by Billing Service when walk-in bill is paid)
+     */
+    @PostMapping("/{bookingId}/confirm")
+    public BookingResponse confirmBooking(@PathVariable Long bookingId) {
+        return bookingService.confirmBooking(bookingId);
     }
 }
 

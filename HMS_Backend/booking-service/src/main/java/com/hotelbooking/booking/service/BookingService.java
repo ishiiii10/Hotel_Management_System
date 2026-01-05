@@ -195,6 +195,7 @@ public class BookingService {
                 .amount(booking.getTotalAmount().doubleValue())
                 .guestEmail(booking.getGuestEmail())
                 .guestName(booking.getGuestName())
+                .bookingSource(bookingSource.name())
                 .build();
         kafkaEventPublisher.publishBookingCreated(createdEvent);
 
@@ -482,6 +483,7 @@ public class BookingService {
                 .checkedOutAt(booking.getCheckedOutAt())
                 .createdAt(booking.getCreatedAt())
                 .updatedAt(booking.getUpdatedAt())
+                .bookingSource(booking.getBookingSource() != null ? booking.getBookingSource().name() : null)
                 .build();
     }
 }
