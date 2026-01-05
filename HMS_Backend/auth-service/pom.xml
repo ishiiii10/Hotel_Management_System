@@ -181,8 +181,16 @@
                 <artifactId>jacoco-maven-plugin</artifactId>
                 <version>0.8.11</version>
 
-                <executions>
+                <configuration>
+                    <excludes>
+                        <exclude>**/*Application.class</exclude>
+                        <exclude>**/config/**</exclude>
+                        <exclude>**/dto/**</exclude>
+                        <exclude>**/domain/**</exclude>
+                    </excludes>
+                </configuration>
 
+                <executions>
                     <!-- Attach agent before tests -->
                     <execution>
                         <id>prepare-agent</id>
