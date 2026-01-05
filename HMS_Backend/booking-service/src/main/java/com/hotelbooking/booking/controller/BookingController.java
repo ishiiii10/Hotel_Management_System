@@ -19,6 +19,7 @@ import com.hotelbooking.booking.dto.request.CancelBookingRequest;
 import com.hotelbooking.booking.dto.request.CheckInRequest;
 import com.hotelbooking.booking.dto.request.CheckOutRequest;
 import com.hotelbooking.booking.dto.request.CreateBookingRequest;
+import com.hotelbooking.booking.dto.request.WalkInBookingRequest;
 import com.hotelbooking.booking.dto.response.AvailabilityResponse;
 import com.hotelbooking.booking.dto.response.BookingResponse;
 import com.hotelbooking.booking.service.BookingService;
@@ -79,6 +80,29 @@ public class BookingController {
         return ResponseEntity.status(201).body(Map.of(
                 "success", true,
                 "message", "Booking created successfully",
+                "data", booking
+        ));
+    }
+
+    /**
+     * Create walk-in booking (receptionist only).
+     */
+    @PostMapping("/walk-in")
+    public ResponseEntity<?> createWalkInBooking(
+            @RequestHeader("X-User-Id") Long userId,
+            @RequestHeader("X-User-Role") String role,
+            @Valid @RequestBody WalkInBookingRequest request
+    ) {
+        // Only RECEPTIONIST can create walk-in bookings
+        if (!"RECEPTIONIST".equalsIgnoreCase(role)) {
+            throw new IllegalStateException("Only RECEPTIONIST can create walk-in bookings");
+        }
+
+        BookingResponse booking = bookingService.createWalkInBooking(request, userId, role);
+
+        return ResponseEntity.status(201).body(Map.of(
+                "success", true,
+                "message", "Walk-in booking created successfully",
                 "data", booking
         ));
     }

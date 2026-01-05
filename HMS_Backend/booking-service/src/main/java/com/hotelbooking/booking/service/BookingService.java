@@ -18,6 +18,7 @@ import com.hotelbooking.booking.dto.request.CancelBookingRequest;
 import com.hotelbooking.booking.dto.request.CheckInRequest;
 import com.hotelbooking.booking.dto.request.CheckOutRequest;
 import com.hotelbooking.booking.dto.request.CreateBookingRequest;
+import com.hotelbooking.booking.dto.request.WalkInBookingRequest;
 import com.hotelbooking.booking.dto.response.AvailableRoom;
 import com.hotelbooking.booking.dto.response.AvailabilityResponse;
 import com.hotelbooking.booking.dto.response.BookingResponse;
@@ -94,6 +95,24 @@ public class BookingService {
     }
 
     /**
+     * Create walk-in booking for receptionist.
+     * Creates booking with WALK_IN source and guest information.
+     */
+    public BookingResponse createWalkInBooking(WalkInBookingRequest request, Long receptionistUserId, String role) {
+        CreateBookingRequest createRequest = new CreateBookingRequest();
+        createRequest.setHotelId(request.getHotelId());
+        createRequest.setRoomId(request.getRoomId());
+        createRequest.setCheckInDate(request.getCheckInDate());
+        createRequest.setCheckOutDate(request.getCheckOutDate());
+        createRequest.setNumberOfGuests(request.getNumberOfGuests());
+        createRequest.setSpecialRequests(request.getSpecialRequests());
+        
+        // Use receptionist's userId, but store guest info separately
+        return createBooking(createRequest, receptionistUserId, request.getGuestName(), 
+                           request.getGuestEmail(), request.getGuestPhone(), role);
+    }
+
+    /**
      * Create a new booking.
      * Step 5a: Double-check availability (prevent race condition)
      * Step 5b: Create booking with status PENDING
@@ -138,9 +157,9 @@ public class BookingService {
 
         // Step 5b: Create booking with status CREATED
         // Payment service will confirm it and change status to CONFIRMED
-        // Determine booking source: WALK_IN if MANAGER/ADMIN, PUBLIC if GUEST
+        // Determine booking source: WALK_IN if MANAGER/ADMIN/RECEPTIONIST, PUBLIC if GUEST
         com.hotelbooking.booking.enums.BookingSource bookingSource = 
-            ("MANAGER".equalsIgnoreCase(role) || "ADMIN".equalsIgnoreCase(role)) 
+            ("MANAGER".equalsIgnoreCase(role) || "ADMIN".equalsIgnoreCase(role) || "RECEPTIONIST".equalsIgnoreCase(role)) 
                 ? com.hotelbooking.booking.enums.BookingSource.WALK_IN 
                 : com.hotelbooking.booking.enums.BookingSource.PUBLIC;
         
