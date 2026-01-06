@@ -1,0 +1,138 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang="en"><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../jacoco-resources/report.css" type="text/css"/><link rel="shortcut icon" href="../jacoco-resources/report.gif" type="image/gif"/><title>EmailService.java</title><link rel="stylesheet" href="../jacoco-resources/prettify.css" type="text/css"/><script type="text/javascript" src="../jacoco-resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../jacoco-sessions.html" class="el_session">Sessions</a></span><a href="../index.html" class="el_report">notification-service</a> &gt; <a href="index.source.html" class="el_package">com.hotelbooking.notification.service</a> &gt; <span class="el_source">EmailService.java</span></div><h1>EmailService.java</h1><pre class="source lang-java linenums">package com.hotelbooking.notification.service;
+
+import org.springframework.beans.factory.annotation.Value;
+import org.springframework.mail.SimpleMailMessage;
+import org.springframework.mail.javamail.JavaMailSender;
+import org.springframework.stereotype.Service;
+
+import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
+
+@Service
+<span class="fc" id="L12">@RequiredArgsConstructor</span>
+<span class="fc" id="L13">@Slf4j</span>
+public class EmailService {
+
+    private final JavaMailSender mailSender;
+
+    @Value(&quot;${spring.mail.username}&quot;)
+    private String fromEmail;
+
+    @Value(&quot;${notification.email.from-name:Hotel Booking System}&quot;)
+    private String fromName;
+
+    public void sendEmail(String to, String subject, String body) {
+        try {
+<span class="nc" id="L26">            SimpleMailMessage message = new SimpleMailMessage();</span>
+<span class="nc" id="L27">            message.setFrom(fromEmail);</span>
+<span class="nc" id="L28">            message.setTo(to);</span>
+<span class="nc" id="L29">            message.setSubject(subject);</span>
+<span class="nc" id="L30">            message.setText(body);</span>
+            
+<span class="nc" id="L32">            mailSender.send(message);</span>
+<span class="nc" id="L33">            log.info(&quot;Email sent successfully to: {}&quot;, to);</span>
+<span class="nc" id="L34">        } catch (Exception e) {</span>
+<span class="nc" id="L35">            log.error(&quot;Failed to send email to: {}&quot;, to, e);</span>
+<span class="nc" id="L36">            throw new RuntimeException(&quot;Failed to send email&quot;, e);</span>
+<span class="nc" id="L37">        }</span>
+<span class="nc" id="L38">    }</span>
+
+    public void sendBookingConfirmationEmail(String to, String guestName, String hotelName, 
+                                           String checkInDate, String checkOutDate, Double amount) {
+<span class="nc" id="L42">        String subject = &quot;Booking Confirmation - &quot; + hotelName;</span>
+<span class="nc" id="L43">        String body = String.format(</span>
+            &quot;Dear %s,\n\n&quot; +
+            &quot;Your booking has been confirmed!\n\n&quot; +
+            &quot;Hotel: %s\n&quot; +
+            &quot;Check-in: %s\n&quot; +
+            &quot;Check-out: %s\n&quot; +
+            &quot;Total Amount: ₹%.2f\n\n&quot; +
+            &quot;Thank you for choosing our hotel!\n\n&quot; +
+            &quot;Best regards,\n&quot; +
+            &quot;Hotel Booking System&quot;,
+            guestName, hotelName, checkInDate, checkOutDate, amount
+        );
+<span class="nc" id="L55">        sendEmail(to, subject, body);</span>
+<span class="nc" id="L56">    }</span>
+
+    public void sendCheckInNotificationEmail(String to, String guestName, String hotelName, 
+                                            String checkInDate) {
+<span class="nc" id="L60">        String subject = &quot;Welcome to &quot; + hotelName;</span>
+<span class="nc" id="L61">        String body = String.format(</span>
+            &quot;Dear %s,\n\n&quot; +
+            &quot;Welcome to %s!\n\n&quot; +
+            &quot;Your check-in is confirmed for: %s\n\n&quot; +
+            &quot;We hope you have a pleasant stay!\n\n&quot; +
+            &quot;Best regards,\n&quot; +
+            &quot;Hotel Booking System&quot;,
+            guestName, hotelName, checkInDate
+        );
+<span class="nc" id="L70">        sendEmail(to, subject, body);</span>
+<span class="nc" id="L71">    }</span>
+
+    public void sendBookingCompletedEmail(String to, String guestName, String hotelName) {
+<span class="nc" id="L74">        String subject = &quot;Thank you for staying with us - &quot; + hotelName;</span>
+<span class="nc" id="L75">        String body = String.format(</span>
+            &quot;Dear %s,\n\n&quot; +
+            &quot;Thank you for staying at %s!\n\n&quot; +
+            &quot;We hope you had a wonderful experience. We would love to hear your feedback.\n\n&quot; +
+            &quot;Looking forward to serving you again!\n\n&quot; +
+            &quot;Best regards,\n&quot; +
+            &quot;Hotel Booking System&quot;,
+            guestName, hotelName
+        );
+<span class="nc" id="L84">        sendEmail(to, subject, body);</span>
+<span class="nc" id="L85">    }</span>
+
+    public void sendCheckInReminderEmail(String to, String guestName, String hotelName, 
+                                        String checkInDate, String hotelAddress) {
+<span class="nc" id="L89">        String subject = &quot;Reminder: Your check-in is tomorrow - &quot; + hotelName;</span>
+<span class="nc" id="L90">        String body = String.format(</span>
+            &quot;Dear %s,\n\n&quot; +
+            &quot;This is a friendly reminder that your check-in is scheduled for tomorrow: %s\n\n&quot; +
+            &quot;Hotel: %s\n&quot; +
+            &quot;Address: %s\n\n&quot; +
+            &quot;We look forward to welcoming you!\n\n&quot; +
+            &quot;Best regards,\n&quot; +
+            &quot;Hotel Booking System&quot;,
+            guestName, checkInDate, hotelName, hotelAddress
+        );
+<span class="nc" id="L100">        sendEmail(to, subject, body);</span>
+<span class="nc" id="L101">    }</span>
+
+    public void sendFeedbackRequestEmail(String to, String guestName, String hotelName, 
+                                        Long bookingId, String feedbackLink) {
+<span class="nc" id="L105">        String subject = &quot;We'd love your feedback - &quot; + hotelName;</span>
+<span class="nc" id="L106">        String body = String.format(</span>
+            &quot;Dear %s,\n\n&quot; +
+            &quot;Thank you for staying at %s!\n\n&quot; +
+            &quot;Your feedback is important to us. Please take a moment to share your experience:\n\n&quot; +
+            &quot;Feedback Link: %s\n\n&quot; +
+            &quot;This link will expire in 7 days.\n\n&quot; +
+            &quot;Thank you for your time!\n\n&quot; +
+            &quot;Best regards,\n&quot; +
+            &quot;Hotel Booking System&quot;,
+            guestName, hotelName, feedbackLink
+        );
+<span class="nc" id="L117">        sendEmail(to, subject, body);</span>
+<span class="nc" id="L118">    }</span>
+
+    public void sendCancellationEmail(String to, String guestName, String hotelName, 
+                                     String checkInDate, String cancellationReason) {
+<span class="nc" id="L122">        String subject = &quot;Booking Cancellation - &quot; + hotelName;</span>
+<span class="nc" id="L123">        String body = String.format(</span>
+            &quot;Dear %s,\n\n&quot; +
+            &quot;Your booking has been cancelled.\n\n&quot; +
+            &quot;Hotel: %s\n&quot; +
+            &quot;Check-in Date: %s\n&quot; +
+            &quot;Reason: %s\n\n&quot; +
+            &quot;We hope to serve you in the future!\n\n&quot; +
+            &quot;Best regards,\n&quot; +
+            &quot;Hotel Booking System&quot;,
+            guestName, hotelName, checkInDate, cancellationReason
+        );
+<span class="nc" id="L134">        sendEmail(to, subject, body);</span>
+<span class="nc" id="L135">    }</span>
+}
+
+</pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.11.202310140853</span></div></body></html>

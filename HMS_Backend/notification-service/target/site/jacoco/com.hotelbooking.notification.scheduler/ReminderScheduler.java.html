@@ -1,0 +1,84 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang="en"><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../jacoco-resources/report.css" type="text/css"/><link rel="shortcut icon" href="../jacoco-resources/report.gif" type="image/gif"/><title>ReminderScheduler.java</title><link rel="stylesheet" href="../jacoco-resources/prettify.css" type="text/css"/><script type="text/javascript" src="../jacoco-resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../jacoco-sessions.html" class="el_session">Sessions</a></span><a href="../index.html" class="el_report">notification-service</a> &gt; <a href="index.source.html" class="el_package">com.hotelbooking.notification.scheduler</a> &gt; <span class="el_source">ReminderScheduler.java</span></div><h1>ReminderScheduler.java</h1><pre class="source lang-java linenums">package com.hotelbooking.notification.scheduler;
+
+import java.time.LocalDate;
+import java.time.LocalDateTime;
+import java.util.List;
+
+import org.springframework.scheduling.annotation.Scheduled;
+import org.springframework.stereotype.Component;
+import org.springframework.transaction.annotation.Transactional;
+
+import com.hotelbooking.notification.domain.ScheduledReminder;
+import com.hotelbooking.notification.dto.HotelInfoResponse;
+import com.hotelbooking.notification.feign.HotelServiceClient;
+import com.hotelbooking.notification.repository.ScheduledReminderRepository;
+import com.hotelbooking.notification.service.EmailService;
+
+import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
+
+@Component
+<span class="fc" id="L21">@RequiredArgsConstructor</span>
+<span class="fc" id="L22">@Slf4j</span>
+public class ReminderScheduler {
+
+    private final ScheduledReminderRepository reminderRepository;
+    private final EmailService emailService;
+    private final HotelServiceClient hotelServiceClient;
+
+    /**
+     * Runs every hour to check for reminders that need to be sent
+     */
+    @Scheduled(cron = &quot;0 0 * * * ?&quot;) // Every hour at minute 0
+    @Transactional
+    public void processScheduledReminders() {
+        try {
+<span class="nc" id="L36">            LocalDate today = LocalDate.now();</span>
+<span class="nc" id="L37">            log.info(&quot;Processing scheduled reminders for date: {}&quot;, today);</span>
+
+<span class="nc" id="L39">            List&lt;ScheduledReminder&gt; reminders = reminderRepository.findPendingRemindersForDate(today);</span>
+
+<span class="nc bnc" id="L41" title="All 2 branches missed.">            for (ScheduledReminder reminder : reminders) {</span>
+                try {
+<span class="nc" id="L43">                    sendReminder(reminder);</span>
+<span class="nc" id="L44">                    reminder.setSent(true);</span>
+<span class="nc" id="L45">                    reminder.setSentAt(LocalDateTime.now());</span>
+<span class="nc" id="L46">                    reminderRepository.save(reminder);</span>
+<span class="nc" id="L47">                    log.info(&quot;Reminder sent successfully for bookingId: {}&quot;, reminder.getBookingId());</span>
+<span class="nc" id="L48">                } catch (Exception e) {</span>
+<span class="nc" id="L49">                    log.error(&quot;Failed to send reminder for bookingId: {}&quot;, </span>
+<span class="nc" id="L50">                             reminder.getBookingId(), e);</span>
+                    // Don't mark as sent if it failed - will retry next hour
+<span class="nc" id="L52">                }</span>
+<span class="nc" id="L53">            }</span>
+
+<span class="nc" id="L55">            log.info(&quot;Processed {} reminders&quot;, reminders.size());</span>
+<span class="nc" id="L56">        } catch (Exception e) {</span>
+<span class="nc" id="L57">            log.error(&quot;Error processing scheduled reminders&quot;, e);</span>
+<span class="nc" id="L58">        }</span>
+<span class="nc" id="L59">    }</span>
+
+    private void sendReminder(ScheduledReminder reminder) {
+<span class="nc bnc" id="L62" title="All 2 branches missed.">        if (&quot;CHECK_IN_REMINDER&quot;.equals(reminder.getReminderType())) {</span>
+            // Fetch hotel details
+<span class="nc" id="L64">            HotelInfoResponse hotel = hotelServiceClient.getHotelById(reminder.getHotelId());</span>
+<span class="nc bnc" id="L65" title="All 2 branches missed.">            if (hotel == null) {</span>
+<span class="nc" id="L66">                log.warn(&quot;Hotel not found for hotelId: {}&quot;, reminder.getHotelId());</span>
+<span class="nc" id="L67">                return;</span>
+            }
+
+<span class="nc bnc" id="L70" title="All 2 branches missed.">            String guestName = reminder.getGuestName() != null ? reminder.getGuestName() : &quot;Guest&quot;;</span>
+<span class="nc bnc" id="L71" title="All 2 branches missed.">            String hotelAddress = hotel.getAddress() != null ? hotel.getAddress() : &quot;&quot;;</span>
+
+<span class="nc" id="L73">            emailService.sendCheckInReminderEmail(</span>
+<span class="nc" id="L74">                reminder.getGuestEmail(),</span>
+                guestName,
+<span class="nc" id="L76">                hotel.getName(),</span>
+<span class="nc" id="L77">                reminder.getCheckInDate().toString(),</span>
+                hotelAddress
+            );
+        }
+<span class="nc" id="L81">    }</span>
+}
+
+</pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.11.202310140853</span></div></body></html>

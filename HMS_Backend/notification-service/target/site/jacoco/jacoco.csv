@@ -1,0 +1,6 @@
+GROUP,PACKAGE,CLASS,INSTRUCTION_MISSED,INSTRUCTION_COVERED,BRANCH_MISSED,BRANCH_COVERED,LINE_MISSED,LINE_COVERED,COMPLEXITY_MISSED,COMPLEXITY_COVERED,METHOD_MISSED,METHOD_COVERED
+notification-service,com.hotelbooking.notification.service,EmailService,207,10,0,0,36,2,7,2,7,2
+notification-service,com.hotelbooking.notification.service,SmsService,82,7,4,0,16,2,5,2,3,2
+notification-service,com.hotelbooking.notification.service,NotificationService,555,19,46,0,167,2,32,2,9,2
+notification-service,com.hotelbooking.notification.scheduler,ReminderScheduler,111,16,10,0,31,2,7,2,2,2
+notification-service,com.hotelbooking.notification.listener,BookingEventListener,140,22,0,0,40,6,5,2,5,2
