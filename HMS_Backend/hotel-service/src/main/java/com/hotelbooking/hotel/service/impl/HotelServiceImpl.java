@@ -121,6 +121,7 @@ public class HotelServiceImpl implements HotelService {
                 h.getStatus(),
                 totalRooms,
                 availableRooms,
+                h.getImageUrl(),
                 h.getCreatedAt(),
                 h.getUpdatedAt()
         );
@@ -230,6 +231,7 @@ public class HotelServiceImpl implements HotelService {
                             h.getStatus(),
                             totalRooms,
                             availableRooms,
+                            h.getImageUrl(),
                             h.getCreatedAt(),
                             h.getUpdatedAt()
                     );

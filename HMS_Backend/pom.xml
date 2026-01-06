@@ -170,6 +170,8 @@
             </activation>
             <properties>
                 <sonar.host.url>https://sonarcloud.io</sonar.host.url>
+                <!-- CI Analysis Mode - Ensure Automatic Analysis is disabled in SonarCloud project settings -->
+                <sonar.scanner.force-deprecated-java-version>true</sonar.scanner.force-deprecated-java-version>
             </properties>
         </profile>
     </profiles>

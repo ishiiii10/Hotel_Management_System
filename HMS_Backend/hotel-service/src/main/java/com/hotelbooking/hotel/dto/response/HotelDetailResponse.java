@@ -34,6 +34,7 @@ public class HotelDetailResponse implements Serializable {
     private HotelStatus status;
     private Integer totalRooms;
     private Integer availableRooms;
+    private String imageUrl;
     private LocalDateTime createdAt;
     private LocalDateTime updatedAt;
 }
