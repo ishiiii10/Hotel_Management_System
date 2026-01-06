@@ -71,7 +71,7 @@ class HotelControllerTest {
     void testGetMyHotel_Success() {
         HotelDetailResponse hotel = new HotelDetailResponse(1L, "Test Hotel", Hotel_Category.HOTEL, 
                 "Description", "Address", City.DELHI, State.DELHI, "India", "110001", 
-                "1234567890", "test@hotel.com", 5, "Amenities", HotelStatus.ACTIVE, 10, 5, null, null);
+                "1234567890", "test@hotel.com", 5, "Amenities", HotelStatus.ACTIVE, 10, 5, "http://example.com/image.jpg", null, null);
 
         when(hotelService.getHotelById(1L)).thenReturn(hotel);
 
@@ -123,7 +123,7 @@ class HotelControllerTest {
     void testGetHotelById_Success() {
         HotelDetailResponse hotel = new HotelDetailResponse(1L, "Test Hotel", Hotel_Category.HOTEL, 
                 "Description", "Address", City.DELHI, State.DELHI, "India", "110001", 
-                "1234567890", "test@hotel.com", 5, "Amenities", HotelStatus.ACTIVE, 10, 5, null, null);
+                "1234567890", "test@hotel.com", 5, "Amenities", HotelStatus.ACTIVE, 10, 5, "http://example.com/image.jpg", null, null);
 
         when(hotelService.getHotelById(1L)).thenReturn(hotel);
 
@@ -185,7 +185,7 @@ class HotelControllerTest {
     void testGetAllHotels_Admin_Success() {
         HotelDetailResponse hotel = new HotelDetailResponse(1L, "Test Hotel", Hotel_Category.HOTEL, 
                 "Description", "Address", City.DELHI, State.DELHI, "India", "110001", 
-                "1234567890", "test@hotel.com", 5, "Amenities", HotelStatus.ACTIVE, 10, 5, null, null);
+                "1234567890", "test@hotel.com", 5, "Amenities", HotelStatus.ACTIVE, 10, 5, "http://example.com/image.jpg", null, null);
 
         when(hotelService.getAllHotels()).thenReturn(Arrays.asList(hotel));
 

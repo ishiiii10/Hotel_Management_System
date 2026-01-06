@@ -47,7 +47,7 @@ class InternalHotelControllerTest {
     void setUp() {
         hotelDetail = new HotelDetailResponse(1L, "Test Hotel", Hotel_Category.HOTEL, 
                 "Description", "Address", City.DELHI, State.DELHI, "India", "110001", 
-                "1234567890", "test@hotel.com", 5, "Amenities", HotelStatus.ACTIVE, 10, 5, null, null);
+                "1234567890", "test@hotel.com", 5, "Amenities", HotelStatus.ACTIVE, 10, 5, "http://example.com/image.jpg", null, null);
 
         roomResponse = new RoomResponse(1L, 1L, "101", RoomCategory.STANDARD, 
                 BigDecimal.valueOf(1000), 2, 1, "Double", 200, "AC, TV", "Nice room", 
