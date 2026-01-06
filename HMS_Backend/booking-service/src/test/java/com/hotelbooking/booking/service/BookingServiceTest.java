@@ -233,18 +233,37 @@ class BookingServiceTest {
         WalkInBookingRequest walkInRequest = new WalkInBookingRequest();
         walkInRequest.setHotelId(1L);
         walkInRequest.setRoomId(1L);
-        walkInRequest.setCheckInDate(LocalDate.now().plusDays(1));
-        walkInRequest.setCheckOutDate(LocalDate.now().plusDays(3));
+        // Walk-in bookings can only be created for today's date
+        walkInRequest.setCheckInDate(LocalDate.now());
+        walkInRequest.setCheckOutDate(LocalDate.now().plusDays(2));
         walkInRequest.setGuestName("Walk-in Guest");
         walkInRequest.setGuestEmail("walkin@example.com");
         walkInRequest.setGuestPhone("1234567890");
         walkInRequest.setNumberOfGuests(2);
 
+        // Update testBooking to have today's check-in date for walk-in booking
+        Booking walkInBooking = Booking.builder()
+                .id(1L)
+                .userId(1L)
+                .hotelId(1L)
+                .roomId(1L)
+                .roomNumber("101")
+                .roomType("STANDARD")
+                .checkInDate(LocalDate.now())
+                .checkOutDate(LocalDate.now().plusDays(2))
+                .totalAmount(BigDecimal.valueOf(2000))
+                .status(BookingStatus.CREATED)
+                .bookingSource(BookingSource.WALK_IN)
+                .guestName("Walk-in Guest")
+                .guestEmail("walkin@example.com")
+                .numberOfGuests(2)
+                .build();
+
         when(hotelServiceClient.getHotelById(1L)).thenReturn(hotelResponse);
         when(hotelServiceClient.getRoomById(1L)).thenReturn(roomResponse);
         when(bookingRepository.findOverlappingBookings(anyLong(), anyLong(), any(LocalDate.class), any(LocalDate.class)))
                 .thenReturn(Collections.emptyList());
-        when(bookingRepository.save(any(Booking.class))).thenReturn(testBooking);
+        when(bookingRepository.save(any(Booking.class))).thenReturn(walkInBooking);
         doNothing().when(kafkaEventPublisher).publishBookingCreated(any());
 
         BookingResponse response = bookingService.createWalkInBooking(walkInRequest, 1L, "RECEPTIONIST");
@@ -371,6 +390,8 @@ class BookingServiceTest {
     @Test
     void testCheckIn_Success() {
         testBooking.setStatus(BookingStatus.CONFIRMED);
+        // Check-in can only happen on the exact check-in date, so set it to today
+        testBooking.setCheckInDate(LocalDate.now());
         CheckInRequest checkInRequest = new CheckInRequest();
 
         when(bookingRepository.findById(1L)).thenReturn(Optional.of(testBooking));

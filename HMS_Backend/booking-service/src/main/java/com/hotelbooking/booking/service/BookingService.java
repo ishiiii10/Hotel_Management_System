@@ -104,6 +104,27 @@ public class BookingService {
      * Creates booking with WALK_IN source and guest information.
      */
     public BookingResponse createWalkInBooking(WalkInBookingRequest request, Long receptionistUserId, String role) {
+        // Walk-in bookings can only be created for today (present day)
+        LocalDate today = LocalDate.now();
+        
+        // Validate check-in date must be today (not past, not future)
+        if (request.getCheckInDate().isBefore(today)) {
+            throw new ValidationException("Walk-in bookings can only be created for today. Check-in date cannot be in the past.");
+        }
+        
+        if (request.getCheckInDate().isAfter(today)) {
+            throw new ValidationException("Walk-in bookings can only be created for today. Check-in date cannot be in the future.");
+        }
+        
+        // Validate check-out date is not in the past and is after check-in date
+        if (request.getCheckOutDate().isBefore(today)) {
+            throw new ValidationException("Check-out date cannot be in the past. Please select today or a future date.");
+        }
+        
+        if (!request.getCheckOutDate().isAfter(request.getCheckInDate())) {
+            throw new ValidationException("Check-out date must be after check-in date.");
+        }
+        
         CreateBookingRequest createRequest = new CreateBookingRequest();
         createRequest.setHotelId(request.getHotelId());
         createRequest.setRoomId(request.getRoomId());
@@ -125,6 +146,17 @@ public class BookingService {
      */
     public BookingResponse createBooking(CreateBookingRequest request, Long userId, String guestName, 
                                         String guestEmail, String guestPhone, String role) {
+        // Validate check-in date is not in the past
+        LocalDate today = LocalDate.now();
+        if (request.getCheckInDate().isBefore(today)) {
+            throw new ValidationException("Check-in date cannot be in the past. Please select today or a future date.");
+        }
+        
+        // Validate check-out date is not in the past
+        if (request.getCheckOutDate().isBefore(today)) {
+            throw new ValidationException("Check-out date cannot be in the past. Please select today or a future date.");
+        }
+
         // Validate hotel exists and is active
         HotelDetailResponse hotel = hotelServiceClient.getHotelById(request.getHotelId());
         String hotelStatus = hotel.getStatus();
@@ -184,6 +216,7 @@ public class BookingService {
                 .guestPhone(guestPhone)
                 .numberOfGuests(request.getNumberOfGuests())
                 .specialRequests(request.getSpecialRequests())
+                .guestDetails(request.getGuestDetails())
                 .build();
 
         booking = bookingRepository.save(booking);
@@ -354,6 +387,18 @@ public class BookingService {
             throw new InvalidBookingStatusException(booking.getStatus(), "check in");
         }
 
+        // Validate check-in date: Can only check in on the exact check-in date
+        LocalDate today = LocalDate.now();
+        LocalDate checkInDate = booking.getCheckInDate();
+        
+        if (checkInDate.isBefore(today)) {
+            throw new ValidationException("Cannot check in. The check-in date (" + checkInDate + ") has already passed.");
+        }
+        
+        if (checkInDate.isAfter(today)) {
+            throw new ValidationException("Cannot check in yet. Check-in is only available on " + checkInDate + " (the scheduled check-in date).");
+        }
+
         LocalDateTime checkInTimestamp = java.time.LocalDateTime.now();
         booking.setStatus(BookingStatus.CHECKED_IN);
         booking.setCheckedInAt(checkInTimestamp);
@@ -482,6 +527,7 @@ public class BookingService {
                 .numberOfGuests(booking.getNumberOfGuests())
                 .numberOfNights(booking.getNumberOfNights())
                 .specialRequests(booking.getSpecialRequests())
+                .guestDetails(booking.getGuestDetails())
                 .cancellationReason(booking.getCancellationReason())
                 .cancelledAt(booking.getCancelledAt())
                 .checkedInAt(booking.getCheckedInAt())

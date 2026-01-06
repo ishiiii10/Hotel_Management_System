@@ -3,9 +3,9 @@ package com.hotelbooking.booking.dto.request;
 import java.time.LocalDate;
 
 import jakarta.validation.constraints.Future;
+import jakarta.validation.constraints.FutureOrPresent;
 import jakarta.validation.constraints.Min;
 import jakarta.validation.constraints.NotNull;
-import jakarta.validation.constraints.Positive;
 import lombok.Getter;
 import lombok.Setter;
 
@@ -20,7 +20,7 @@ public class CreateBookingRequest {
     private Long roomId;
 
     @NotNull(message = "Check-in date is required")
-    @Future(message = "Check-in date must be in the future")
+    @FutureOrPresent(message = "Check-in date cannot be in the past")
     private LocalDate checkInDate;
 
     @NotNull(message = "Check-out date is required")
@@ -35,5 +35,9 @@ public class CreateBookingRequest {
     private Integer rooms;
 
     private String specialRequests;
+
+    private String guestPhone;
+
+    private String guestDetails; // JSON string containing array of guest info: [{"name": "John Doe", "age": 30}, ...]
 }
 

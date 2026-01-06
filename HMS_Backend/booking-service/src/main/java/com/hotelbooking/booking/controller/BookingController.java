@@ -75,9 +75,11 @@ public class BookingController {
         // For now, use username as guest name if available
         String guestName = username != null ? username : "Guest";
         String guestEmail = userEmail != null ? userEmail : "";
+        // Get guest phone from request if provided, otherwise null
+        String guestPhone = request.getGuestPhone();
 
         BookingResponse booking = bookingService.createBooking(
-                request, userId, guestName, guestEmail, null, role);
+                request, userId, guestName, guestEmail, guestPhone, role);
 
         return ResponseEntity.status(201).body(Map.of(
                 "success", true,

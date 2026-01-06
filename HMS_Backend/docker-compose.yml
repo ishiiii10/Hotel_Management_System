@@ -1,0 +1,498 @@
+services:
+  # MySQL Databases
+  mysql-auth:
+    image: mysql:8.0
+    container_name: hms-mysql-auth
+    environment:
+      MYSQL_ROOT_PASSWORD: Ish983556
+      MYSQL_DATABASE: hms_auth_db
+    ports:
+      - "3307:3306"
+    volumes:
+      - mysql_auth_data:/var/lib/mysql
+    networks:
+      - hms-network
+    healthcheck:
+      test: ["CMD", "mysqladmin", "ping", "-h", "localhost", "-u", "root", "-pIsh983556"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  mysql-hotel:
+    image: mysql:8.0
+    container_name: hms-mysql-hotel
+    environment:
+      MYSQL_ROOT_PASSWORD: Ish983556
+      MYSQL_DATABASE: hms_hotel_db
+    ports:
+      - "3308:3306"
+    volumes:
+      - mysql_hotel_data:/var/lib/mysql
+    networks:
+      - hms-network
+    healthcheck:
+      test: ["CMD", "mysqladmin", "ping", "-h", "localhost", "-u", "root", "-pIsh983556"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  mysql-booking:
+    image: mysql:8.0
+    container_name: hms-mysql-booking
+    environment:
+      MYSQL_ROOT_PASSWORD: Ish983556
+      MYSQL_DATABASE: hms_booking_db
+    ports:
+      - "3309:3306"
+    volumes:
+      - mysql_booking_data:/var/lib/mysql
+    networks:
+      - hms-network
+    healthcheck:
+      test: ["CMD", "mysqladmin", "ping", "-h", "localhost", "-u", "root", "-pIsh983556"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  mysql-billing:
+    image: mysql:8.0
+    container_name: hms-mysql-billing
+    environment:
+      MYSQL_ROOT_PASSWORD: Ish983556
+      MYSQL_DATABASE: hms_billing_db
+    ports:
+      - "3310:3306"
+    volumes:
+      - mysql_billing_data:/var/lib/mysql
+    networks:
+      - hms-network
+    healthcheck:
+      test: ["CMD", "mysqladmin", "ping", "-h", "localhost", "-u", "root", "-pIsh983556"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  mysql-notification:
+    image: mysql:8.0
+    container_name: hms-mysql-notification
+    environment:
+      MYSQL_ROOT_PASSWORD: Ish983556
+      MYSQL_DATABASE: hms_notification_db
+    ports:
+      - "3311:3306"
+    volumes:
+      - mysql_notification_data:/var/lib/mysql
+    networks:
+      - hms-network
+    healthcheck:
+      test: ["CMD", "mysqladmin", "ping", "-h", "localhost", "-u", "root", "-pIsh983556"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  # Redis Cache
+  redis:
+    image: redis:7-alpine
+    container_name: hms-redis
+    ports:
+      - "6379:6379"
+    volumes:
+      - redis_data:/data
+    networks:
+      - hms-network
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  # Kafka and Zookeeper
+  zookeeper:
+    image: confluentinc/cp-zookeeper:7.5.0
+    container_name: hms-zookeeper
+    environment:
+      ZOOKEEPER_CLIENT_PORT: 2181
+      ZOOKEEPER_TICK_TIME: 2000
+    ports:
+      - "2181:2181"
+    networks:
+      - hms-network
+    healthcheck:
+      test: ["CMD", "nc", "-z", "localhost", "2181"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  kafka:
+    image: confluentinc/cp-kafka:7.5.0
+    container_name: hms-kafka
+    depends_on:
+      zookeeper:
+        condition: service_healthy
+    ports:
+      - "9092:9092"
+    environment:
+      KAFKA_BROKER_ID: 1
+      KAFKA_ZOOKEEPER_CONNECT: zookeeper:2181
+      KAFKA_ADVERTISED_LISTENERS: PLAINTEXT://kafka:9092
+      KAFKA_LISTENER_SECURITY_PROTOCOL_MAP: PLAINTEXT:PLAINTEXT
+      KAFKA_INTER_BROKER_LISTENER_NAME: PLAINTEXT
+      KAFKA_OFFSETS_TOPIC_REPLICATION_FACTOR: 1
+      KAFKA_AUTO_CREATE_TOPICS_ENABLE: "true"
+      KAFKA_LOG_DIRS: /var/lib/kafka/data
+    networks:
+      - hms-network
+    healthcheck:
+      test: ["CMD", "kafka-broker-api-versions", "--bootstrap-server", "localhost:9092"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  # Eureka Service Discovery
+  eureka-service:
+    build:
+      context: ./eureka-service
+      dockerfile: Dockerfile
+    container_name: hms-eureka
+    ports:
+      - "8761:8761"
+    networks:
+      - hms-network
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8761/actuator/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+
+  # Config Server
+  config-server:
+    build:
+      context: ./config-server
+      dockerfile: Dockerfile
+    container_name: hms-config-server
+    ports:
+      - "8888:8888"
+    environment:
+      SPRING_CLOUD_CONFIG_SERVER_GIT_URI: https://github.com/ishiiii10/Hotel_Management_System_ConfigServer
+      SPRING_CLOUD_CONFIG_SERVER_GIT_CLONE_ON_START: "true"
+      SPRING_CLOUD_CONFIG_SERVER_GIT_DEFAULT_LABEL: main
+      EUREKA_CLIENT_SERVICE_URL_DEFAULTZONE: http://eureka-service:8761/eureka
+    depends_on:
+      - eureka-service
+    networks:
+      - hms-network
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8888/actuator/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+
+  # Auth Service
+  auth-service:
+    build:
+      context: ./auth-service
+      dockerfile: Dockerfile
+    container_name: hms-auth-service
+    ports:
+      - "9001:9001"
+    environment:
+      SERVER_PORT: 9001
+      SPRING_CONFIG_IMPORT: classpath:/application.docker.properties,optional:configserver:http://config-server:8888
+      SPRING_DATASOURCE_URL: jdbc:mysql://mysql-auth:3306/hms_auth_db
+      SPRING_DATASOURCE_USERNAME: root
+      SPRING_DATASOURCE_PASSWORD: Ish983556
+      SPRING_JPA_HIBERNATE_DDL_AUTO: update
+      SPRING_JPA_SHOW_SQL: "false"
+      SPRING_JPA_PROPERTIES_HIBERNATE_DIALECT: org.hibernate.dialect.MySQLDialect
+      SPRING_DATA_REDIS_HOST: redis
+      SPRING_DATA_REDIS_PORT: 6379
+      EUREKA_CLIENT_SERVICE_URL_DEFAULTZONE: http://eureka-service:8761/eureka
+      SPRING_CLOUD_CONFIG_URI: http://config-server:8888
+      AUTH_ADMIN_EMAIL: admin@hotelbooking.com
+      AUTH_ADMIN_PASSWORD: Admin123
+      AUTH_ADMIN_FULLNAME: System Administrator
+    depends_on:
+      mysql-auth:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+      eureka-service:
+        condition: service_healthy
+      config-server:
+        condition: service_healthy
+    networks:
+      - hms-network
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:9001/actuator/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 60s
+
+  # Hotel Service
+  hotel-service:
+    build:
+      context: ./hotel-service
+      dockerfile: Dockerfile
+    container_name: hms-hotel-service
+    ports:
+      - "9002:9002"
+    environment:
+      SERVER_PORT: 9002
+      SPRING_CONFIG_IMPORT: classpath:/application.docker.properties,optional:configserver:http://config-server:8888
+      SPRING_DATASOURCE_URL: jdbc:mysql://mysql-hotel:3306/hms_hotel_db
+      SPRING_DATASOURCE_USERNAME: root
+      SPRING_DATASOURCE_PASSWORD: Ish983556
+      SPRING_JPA_HIBERNATE_DDL_AUTO: update
+      SPRING_JPA_SHOW_SQL: "false"
+      SPRING_JPA_PROPERTIES_HIBERNATE_DIALECT: org.hibernate.dialect.MySQLDialect
+      SPRING_DATA_REDIS_HOST: redis
+      SPRING_DATA_REDIS_PORT: 6379
+      EUREKA_CLIENT_SERVICE_URL_DEFAULTZONE: http://eureka-service:8761/eureka
+      SPRING_CLOUD_CONFIG_URI: http://config-server:8888
+    depends_on:
+      mysql-hotel:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+      eureka-service:
+        condition: service_healthy
+      config-server:
+        condition: service_healthy
+    networks:
+      - hms-network
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:9002/actuator/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 60s
+
+  # Booking Service
+  booking-service:
+    build:
+      context: ./booking-service
+      dockerfile: Dockerfile
+    container_name: hms-booking-service
+    ports:
+      - "9003:9003"
+    environment:
+      SERVER_PORT: 9003
+      SPRING_CONFIG_IMPORT: classpath:/application.docker.properties,optional:configserver:http://config-server:8888
+      SPRING_DATASOURCE_URL: jdbc:mysql://mysql-booking:3306/hms_booking_db
+      SPRING_DATASOURCE_USERNAME: root
+      SPRING_DATASOURCE_PASSWORD: Ish983556
+      SPRING_JPA_HIBERNATE_DDL_AUTO: update
+      SPRING_JPA_SHOW_SQL: "false"
+      SPRING_JPA_PROPERTIES_HIBERNATE_DIALECT: org.hibernate.dialect.MySQLDialect
+      SPRING_KAFKA_BOOTSTRAP_SERVERS: kafka:9092
+      EUREKA_CLIENT_SERVICE_URL_DEFAULTZONE: http://eureka-service:8761/eureka
+      SPRING_CLOUD_CONFIG_URI: http://config-server:8888
+      SPRING_DATA_REDIS_HOST: redis
+      SPRING_DATA_REDIS_PORT: 6379
+    depends_on:
+      mysql-booking:
+        condition: service_healthy
+      kafka:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+      eureka-service:
+        condition: service_healthy
+      config-server:
+        condition: service_healthy
+    networks:
+      - hms-network
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:9003/actuator/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 60s
+
+  # Notification Service
+  notification-service:
+    build:
+      context: ./notification-service
+      dockerfile: Dockerfile
+    container_name: hms-notification-service
+    ports:
+      - "9004:9004"
+    environment:
+      SERVER_PORT: 9004
+      SPRING_CONFIG_IMPORT: classpath:/application.docker.properties,optional:configserver:http://config-server:8888
+      SPRING_DATASOURCE_URL: jdbc:mysql://mysql-notification:3306/hms_notification_db
+      SPRING_DATASOURCE_USERNAME: root
+      SPRING_DATASOURCE_PASSWORD: Ish983556
+      SPRING_JPA_HIBERNATE_DDL_AUTO: update
+      SPRING_JPA_SHOW_SQL: "false"
+      SPRING_JPA_PROPERTIES_HIBERNATE_DIALECT: org.hibernate.dialect.MySQLDialect
+      SPRING_KAFKA_BOOTSTRAP_SERVERS: kafka:9092
+      SPRING_MAIL_HOST: smtp.gmail.com
+      SPRING_MAIL_PORT: 587
+      SPRING_MAIL_USERNAME: noreply@hotelbooking.com
+      SPRING_MAIL_PASSWORD: dummy-password
+      SPRING_MAIL_PROPERTIES_MAIL_SMTP_AUTH: "true"
+      SPRING_MAIL_PROPERTIES_MAIL_SMTP_STARTTLS_ENABLE: "true"
+      NOTIFICATION_EMAIL_FROM: noreply@hotelbooking.com
+      NOTIFICATION_EMAIL_FROM_NAME: Hotel Booking System
+      EUREKA_CLIENT_SERVICE_URL_DEFAULTZONE: http://eureka-service:8761/eureka
+      SPRING_CLOUD_CONFIG_URI: http://config-server:8888
+    depends_on:
+      mysql-notification:
+        condition: service_healthy
+      kafka:
+        condition: service_healthy
+      eureka-service:
+        condition: service_healthy
+      config-server:
+        condition: service_healthy
+    networks:
+      - hms-network
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:9004/actuator/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+
+  # Billing Service
+  billing-service:
+    build:
+      context: ./billing-service
+      dockerfile: Dockerfile
+    container_name: hms-billing-service
+    ports:
+      - "9005:9005"
+    environment:
+      SERVER_PORT: 9005
+      SPRING_CONFIG_IMPORT: classpath:/application.docker.properties,optional:configserver:http://config-server:8888
+      SPRING_DATASOURCE_URL: jdbc:mysql://mysql-billing:3306/hms_billing_db
+      SPRING_DATASOURCE_USERNAME: root
+      SPRING_DATASOURCE_PASSWORD: Ish983556
+      SPRING_JPA_HIBERNATE_DDL_AUTO: update
+      SPRING_JPA_SHOW_SQL: "false"
+      SPRING_JPA_PROPERTIES_HIBERNATE_DIALECT: org.hibernate.dialect.MySQLDialect
+      SPRING_KAFKA_BOOTSTRAP_SERVERS: kafka:9092
+      SPRING_DATA_REDIS_HOST: redis
+      SPRING_DATA_REDIS_PORT: 6379
+      EUREKA_CLIENT_SERVICE_URL_DEFAULTZONE: http://eureka-service:8761/eureka
+      SPRING_CLOUD_CONFIG_URI: http://config-server:8888
+    depends_on:
+      mysql-billing:
+        condition: service_healthy
+      kafka:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+      eureka-service:
+        condition: service_healthy
+      config-server:
+        condition: service_healthy
+    networks:
+      - hms-network
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:9005/actuator/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 60s
+
+  # Reports Service
+  reports-service:
+    build:
+      context: ./reports-service
+      dockerfile: Dockerfile
+    container_name: hms-reports-service
+    ports:
+      - "9006:9006"
+    environment:
+      SERVER_PORT: 9006
+      SPRING_CONFIG_IMPORT: classpath:/application.docker.properties,optional:configserver:http://config-server:8888
+      SPRING_DATASOURCE_BOOKING_JDBC_URL: jdbc:mysql://mysql-booking:3306/hms_booking_db
+      SPRING_DATASOURCE_BOOKING_USERNAME: root
+      SPRING_DATASOURCE_BOOKING_PASSWORD: Ish983556
+      SPRING_DATASOURCE_BILLING_JDBC_URL: jdbc:mysql://mysql-billing:3306/hms_billing_db
+      SPRING_DATASOURCE_BILLING_USERNAME: root
+      SPRING_DATASOURCE_BILLING_PASSWORD: Ish983556
+      SPRING_DATASOURCE_HOTEL_JDBC_URL: jdbc:mysql://mysql-hotel:3306/hms_hotel_db
+      SPRING_DATASOURCE_HOTEL_USERNAME: root
+      SPRING_DATASOURCE_HOTEL_PASSWORD: Ish983556
+      SPRING_DATA_REDIS_HOST: redis
+      SPRING_DATA_REDIS_PORT: 6379
+      SPRING_JPA_HIBERNATE_DDL_AUTO: none
+      SPRING_JPA_SHOW_SQL: "false"
+      EUREKA_CLIENT_SERVICE_URL_DEFAULTZONE: http://eureka-service:8761/eureka
+      SPRING_CLOUD_CONFIG_URI: http://config-server:8888
+    depends_on:
+      mysql-booking:
+        condition: service_healthy
+      mysql-billing:
+        condition: service_healthy
+      mysql-hotel:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+      eureka-service:
+        condition: service_healthy
+      config-server:
+        condition: service_healthy
+    networks:
+      - hms-network
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:9006/actuator/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+
+  # API Gateway
+  api-gateway:
+    build:
+      context: ./api-gateway
+      dockerfile: Dockerfile
+    container_name: hms-api-gateway
+    ports:
+      - "9090:9090"
+    environment:
+      SERVER_PORT: 9090
+      # Import Docker-specific properties (this will be loaded after bootstrap.properties)
+      SPRING_CONFIG_IMPORT: classpath:/application.docker.properties,optional:configserver:http://config-server:8888
+      AUTH_JWT_SECRET: your-secret-key-for-jwt-token-generation-min-256-bits-long
+      EUREKA_CLIENT_SERVICE_URL_DEFAULTZONE: http://eureka-service:8761/eureka
+      SPRING_CLOUD_CONFIG_URI: http://config-server:8888
+    depends_on:
+      eureka-service:
+        condition: service_healthy
+      config-server:
+        condition: service_healthy
+      auth-service:
+        condition: service_healthy
+      hotel-service:
+        condition: service_healthy
+      booking-service:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    networks:
+      - hms-network
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:9090/actuator/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+
+networks:
+  hms-network:
+    driver: bridge
+
+volumes:
+  mysql_auth_data:
+  mysql_hotel_data:
+  mysql_booking_data:
+  mysql_billing_data:
+  mysql_notification_data:
+  redis_data:
+

@@ -88,6 +88,9 @@ public class Booking {
     @Column(name = "special_requests", length = 500)
     private String specialRequests;
 
+    @Column(name = "guest_details", columnDefinition = "TEXT")
+    private String guestDetails; // JSON string containing array of guest info: [{"name": "John Doe", "age": 30}, ...]
+
     @Column(name = "cancellation_reason", length = 500)
     private String cancellationReason;
 

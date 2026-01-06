@@ -15,6 +15,7 @@ import org.springframework.web.bind.annotation.RestController;
 import com.hotelbooking.billing.dto.request.MarkBillPaidRequest;
 import com.hotelbooking.billing.dto.response.BillResponse;
 import com.hotelbooking.billing.dto.response.PaymentResponse;
+import com.hotelbooking.billing.exception.AccessDeniedException;
 import com.hotelbooking.billing.service.BillingService;
 
 import io.swagger.v3.oas.annotations.Operation;
@@ -38,13 +39,33 @@ public class BillingController {
     public ResponseEntity<?> getBillByBookingId(
             @RequestHeader("X-User-Id") Long userId,
             @RequestHeader("X-User-Role") String role,
+            @RequestHeader(value = "X-Hotel-Id", required = false) Long hotelId,
             @PathVariable Long bookingId
     ) {
         BillResponse bill = billingService.getBillByBookingId(bookingId);
 
-        // Authorization: Users can only view their own bills unless ADMIN
-        if (!"ADMIN".equalsIgnoreCase(role) && !bill.getUserId().equals(userId)) {
-            throw new IllegalStateException("You can only view your own bills");
+        // Authorization:
+        // - ADMIN can view any bill
+        // - MANAGER/RECEPTIONIST can view bills for bookings in their hotel
+        // - GUEST can view their own bills
+        boolean isAdmin = "ADMIN".equalsIgnoreCase(role);
+        boolean isStaff = "MANAGER".equalsIgnoreCase(role) || "RECEPTIONIST".equalsIgnoreCase(role);
+        boolean isGuest = "GUEST".equalsIgnoreCase(role);
+        
+        if (!isAdmin) {
+            if (isStaff) {
+                // Staff can view bills for bookings in their hotel
+                if (hotelId == null || !bill.getHotelId().equals(hotelId)) {
+                    throw new AccessDeniedException("You can only view bills for bookings in your hotel");
+                }
+            } else if (isGuest) {
+                // Guests can only view their own bills
+                if (!bill.getUserId().equals(userId)) {
+                    throw new AccessDeniedException("You can only view your own bills");
+                }
+            } else {
+                throw new AccessDeniedException("Unauthorized to view bills");
+            }
         }
 
         return ResponseEntity.ok(Map.of(
@@ -65,7 +86,7 @@ public class BillingController {
             @PathVariable Long bookingId
     ) {
         if (!"ADMIN".equalsIgnoreCase(role)) {
-            throw new IllegalStateException("Only ADMIN can manually generate bills");
+            throw new AccessDeniedException("Only ADMIN can manually generate bills");
         }
 
         BillResponse bill = billingService.manuallyGenerateBill(bookingId);
@@ -97,7 +118,7 @@ public class BillingController {
                 || "MANAGER".equalsIgnoreCase(role);
         
         if (!isStaff && !"GUEST".equalsIgnoreCase(role)) {
-            throw new IllegalStateException("Only ADMIN, RECEPTIONIST, MANAGER, or GUEST can mark bills as paid");
+            throw new AccessDeniedException("Only ADMIN, RECEPTIONIST, MANAGER, or GUEST can mark bills as paid");
         }
         
         // If GUEST, verify they own the bill
@@ -105,7 +126,7 @@ public class BillingController {
             // Get bill to verify ownership
             BillResponse existingBill = billingService.getBillById(billId);
             if (!existingBill.getUserId().equals(userId)) {
-                throw new IllegalStateException("You can only pay your own bills");
+                throw new AccessDeniedException("You can only pay your own bills");
             }
         }
 
@@ -139,7 +160,7 @@ public class BillingController {
     @GetMapping("/payments")
     public ResponseEntity<?> getAllPayments(@RequestHeader("X-User-Role") String role) {
         if (!"ADMIN".equalsIgnoreCase(role)) {
-            throw new IllegalStateException("Only ADMIN can view all payments");
+            throw new AccessDeniedException("Only ADMIN can view all payments");
         }
 
         List<PaymentResponse> payments = billingService.getAllPayments();

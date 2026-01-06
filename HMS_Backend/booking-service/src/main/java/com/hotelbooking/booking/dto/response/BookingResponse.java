@@ -38,6 +38,7 @@ public class BookingResponse implements Serializable {
     private Integer numberOfGuests;
     private Integer numberOfNights;
     private String specialRequests;
+    private String guestDetails; // JSON string containing array of guest info
     private String cancellationReason;
     private LocalDateTime cancelledAt;
     private LocalDateTime checkedInAt;

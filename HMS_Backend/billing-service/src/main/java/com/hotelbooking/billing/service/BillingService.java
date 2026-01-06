@@ -18,6 +18,11 @@ import com.hotelbooking.billing.dto.request.MarkBillPaidRequest;
 import com.hotelbooking.billing.dto.response.BillResponse;
 import com.hotelbooking.billing.dto.response.PaymentResponse;
 import com.hotelbooking.billing.enums.BillStatus;
+import com.hotelbooking.billing.exception.BillAlreadyPaidException;
+import com.hotelbooking.billing.exception.BillGenerationException;
+import com.hotelbooking.billing.exception.BillNotFoundException;
+import com.hotelbooking.billing.exception.BookingNotFoundException;
+import com.hotelbooking.billing.exception.InvalidBookingStatusException;
 import com.hotelbooking.billing.feign.BookingServiceClient;
 import com.hotelbooking.billing.repository.BillRepository;
 import com.hotelbooking.billing.repository.PaymentRepository;
@@ -70,7 +75,7 @@ public class BillingService {
                     event.getBookingId(), bill.getId(), bill.getBillNumber(), event.getBookingSource());
         } catch (Exception e) {
             log.error("❌ Error generating bill for bookingId: {}", event.getBookingId(), e);
-            throw new RuntimeException("Failed to generate bill for bookingId: " + event.getBookingId(), e);
+            throw new BillGenerationException("Failed to generate bill for bookingId: " + event.getBookingId(), e);
         }
     }
 
@@ -107,7 +112,7 @@ public class BillingService {
                     event.getBookingId(), bill.getId(), bill.getBillNumber());
         } catch (Exception e) {
             log.error("❌ Error generating bill for bookingId: {}", event.getBookingId(), e);
-            throw new RuntimeException("Failed to generate bill for bookingId: " + event.getBookingId(), e);
+            throw new BillGenerationException("Failed to generate bill for bookingId: " + event.getBookingId(), e);
         }
     }
 
@@ -116,7 +121,7 @@ public class BillingService {
      */
     public BillResponse getBillById(Long billId) {
         Bill bill = billRepository.findById(billId)
-                .orElseThrow(() -> new IllegalStateException("Bill not found"));
+                .orElseThrow(() -> new BillNotFoundException("Bill not found with id: " + billId));
         return toBillResponse(bill);
     }
 
@@ -136,7 +141,7 @@ public class BillingService {
         try {
             BookingInfoResponse booking = bookingServiceClient.getBookingById(bookingId);
             if (booking == null) {
-                throw new IllegalStateException("Booking not found for bookingId: " + bookingId);
+                throw new BookingNotFoundException("Booking not found for bookingId: " + bookingId);
             }
 
             String status = booking.getStatus();
@@ -170,17 +175,17 @@ public class BillingService {
             }
 
             // For other statuses, bill should already exist
-            throw new IllegalStateException(
+            throw new BillNotFoundException(
                 "Bill not found for bookingId: " + bookingId + ". " +
                 "Booking status is: " + status + ". " +
                 "If booking is CREATED, bill should be generated automatically. " +
                 "Please try again or contact support."
             );
-        } catch (IllegalStateException e) {
+        } catch (BillNotFoundException | BookingNotFoundException e) {
             throw e;
         } catch (Exception e) {
             log.error("Error checking booking status for bookingId: {}", bookingId, e);
-            throw new IllegalStateException(
+            throw new BillNotFoundException(
                 "Bill not found for bookingId: " + bookingId + ". " +
                 "Unable to verify booking status. " +
                 "Please ensure the booking exists."
@@ -203,12 +208,12 @@ public class BillingService {
         // Get booking details
         BookingInfoResponse booking = bookingServiceClient.getBookingById(bookingId);
         if (booking == null) {
-            throw new IllegalStateException("Booking not found for bookingId: " + bookingId);
+            throw new BookingNotFoundException("Booking not found for bookingId: " + bookingId);
         }
 
         String status = booking.getStatus();
         if (!"CONFIRMED".equalsIgnoreCase(status)) {
-            throw new IllegalStateException(
+            throw new InvalidBookingStatusException(
                 "Cannot generate bill for bookingId: " + bookingId + ". " +
                 "Booking status is: " + status + ". " +
                 "Only CONFIRMED bookings can have bills. " +
@@ -240,10 +245,10 @@ public class BillingService {
      */
     public BillResponse markBillAsPaid(Long billId, String paidByUsername, MarkBillPaidRequest request) {
         Bill bill = billRepository.findById(billId)
-                .orElseThrow(() -> new IllegalStateException("Bill not found"));
+                .orElseThrow(() -> new BillNotFoundException("Bill not found with id: " + billId));
 
         if (bill.getStatus() == BillStatus.PAID) {
-            throw new IllegalStateException("Bill is already paid");
+            throw new BillAlreadyPaidException("Bill is already paid");
         }
 
         // Get booking info to check if booking needs to be confirmed
