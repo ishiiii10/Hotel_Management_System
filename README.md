@@ -15,12 +15,41 @@ A microservices-based Hotel Management System built with Spring Boot and Angular
 - **Authentication**: JWT
 
 
+## Frontend Running 
+
+localhost:4200
+
+
+
+
+## 📸 UI Screenshots
+
+### Landing Page
+<img width="1466" height="768" alt="Screenshot 2026-01-07 at 2 31 37 AM" src="https://github.com/user-attachments/assets/11e119ce-91c0-470b-8d5a-82b93fb32e16" />
+
+### Hotel List Page
+<img width="1467" height="783" alt="Screenshot 2026-01-07 at 2 31 50 AM" src="https://github.com/user-attachments/assets/aaad0387-d994-4403-a063-efc88ffc1800" />
+
+
+### Hotel Details Page
+
+<img width="1470" height="956" alt="Screenshot 2026-01-07 at 3 17 05 AM" src="https://github.com/user-attachments/assets/813ef8ba-9cc8-4d6c-b7bc-ead4156f7303" />
+
+## Admin Analytics Page
+<img width="1463" height="729" alt="Screenshot 2026-01-07 at 3 01 37 AM" src="https://github.com/user-attachments/assets/f4c0094a-dece-4a09-8089-9d09c6be18b9" />
+
+
+### Booking Modal
+
+<img width="568" height="794" alt="Screenshot 2026-01-07 at 3 19 38 AM" src="https://github.com/user-attachments/assets/32a9af7f-3d14-4ad5-b09d-93cf03e2c02e" />
+
+### Dashboard
+
+<img width="1470" height="763" alt="Screenshot 2026-01-07 at 3 13 04 AM" src="https://github.com/user-attachments/assets/f81b487b-c435-4787-a664-5aee6d3a4768" />
 
 
 ### Architecture Diagram
-```
-[Architecture Diagram Placeholder - Add SystemDesign.png here]
-```
+<img width="17100" height="7886" alt="RoomManagementFlow-2026-01-06-202234" src="https://github.com/user-attachments/assets/47607dba-6095-4157-b1f8-279b50614e84" />
 
 ## 🎯 Services
 
@@ -60,39 +89,7 @@ A microservices-based Hotel Management System built with Spring Boot and Angular
 
 ### Backend Setup
 
-1. **Start Infrastructure Services**:
-   ```bash
-   # Start MySQL, Redis, Kafka
-   ```
-
-2. **Start Services** (in order):
-   ```bash
-   # 1. Eureka Service
-   cd HMS_Backend/eureka-service
-   mvn spring-boot:run
-   
-   # 2. Config Server
-   cd HMS_Backend/config-server
-   mvn spring-boot:run
-   
-   # 3. Auth Service
-   cd HMS_Backend/auth-service
-   mvn spring-boot:run
-   
-   # 4. Hotel Service
-   cd HMS_Backend/hotel-service
-   mvn spring-boot:run
-   
-   # 5. Other services...
-   ```
-
-3. **Create Databases**:
-   ```sql
-   CREATE DATABASE hms_auth_db;
-   CREATE DATABASE hms_hotel_db;
-   CREATE DATABASE hms_booking_db;
-   CREATE DATABASE hms_billing_db;
-   ```
+docker compose up --build
 
 ### Frontend Setup
 
@@ -300,32 +297,6 @@ The Reports Service provides:
 [Notification Flow Diagram Placeholder - Add NotificationFlow.png here]
 ```
 
-## 📸 UI Screenshots
-
-### Landing Page
-```
-[Landing Page Screenshot Placeholder]
-```
-
-### Hotel List Page
-```
-[Hotel List Page Screenshot Placeholder]
-```
-
-### Hotel Details Page
-```
-[Hotel Details Page Screenshot Placeholder]
-```
-
-### Booking Modal
-```
-[Booking Modal Screenshot Placeholder]
-```
-
-### Dashboard
-```
-[Dashboard Screenshot Placeholder]
-```
 
 ## 🚀 Deployment
 
