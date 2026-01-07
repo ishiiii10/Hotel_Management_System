@@ -133,9 +133,8 @@ ng serve
 - **Payment**: Payment records
 
 ### ER Diagram
-```
-[ER Diagram Placeholder - Add ErDiagram.png here]
-```
+<img width="12464" height="19391" alt="ErDiagram" src="https://github.com/user-attachments/assets/7016b05b-6f6d-4497-9653-37f60be33183" />
+
 
 **Complete Schema**: See `SOFTWARE_DESIGN_DOCUMENT.md`
 
@@ -154,9 +153,8 @@ ng serve
 ```
 
 ### Booking Flow Diagram
-```
-[Booking Flow Diagram Placeholder - Add BookingFlow.png here]
-```
+<img width="12320" height="7565" alt="BookingFlow" src="https://github.com/user-attachments/assets/8f863417-1315-4d23-ab05-612570904b48" />
+
 
 ### Billing Flow
 ```
@@ -168,9 +166,8 @@ ng serve
 ```
 
 ### Billing Flow Diagram
-```
-[Bill Generation Flow Diagram Placeholder - Add BillGenerateFlow.png here]
-```
+<img width="8580" height="6780" alt="BillGenerateFlow" src="https://github.com/user-attachments/assets/a5396a11-cbbe-44f5-b694-be52be313b94" />
+
 
 ## 🔐 Security
 
@@ -261,10 +258,6 @@ The Reports Service provides:
 - Booking analytics
 - Occupancy rates
 
-### Reports Dashboard Screenshots
-```
-[Reports Dashboard Placeholder - Add dashboard screenshots]
-```
 
 ## 🧪 Testing
 
@@ -274,9 +267,13 @@ The Reports Service provides:
 - Service coverage reports in `JacocoReports/`
 
 ### Coverage Reports
-```
-[Coverage Reports Placeholder - Add JacocoReports images]
-```
+<img width="1470" height="479" alt="Billing" src="https://github.com/user-attachments/assets/9a876b06-d423-4070-8cea-5097e76ea948" />
+
+<img width="1470" height="665" alt="AuthService" src="https://github.com/user-attachments/assets/afc364b6-530d-408a-9c67-e4301fc6d8f3" />
+
+<img width="1470" height="433" alt="Booking" src="https://github.com/user-attachments/assets/403eaf80-bb83-40f5-a75f-88283f30e697" />
+
+<img width="1470" height="624" alt="HotelService" src="https://github.com/user-attachments/assets/02738eb1-8fd5-4d95-8663-479b1b293bfa" />
 
 ## 📚 Documentation
 
@@ -292,10 +289,6 @@ The Reports Service provides:
 - `guest-checked-in` → Notification Service
 - `checkout-completed` → Notification Service
 
-### Event Flow Diagrams
-```
-[Notification Flow Diagram Placeholder - Add NotificationFlow.png here]
-```
 
 
 ## 🚀 Deployment
