@@ -1,5 +1,3 @@
-version: "3.8"
-
 services:
 
   # ---------------- DATABASES ----------------
@@ -16,6 +14,11 @@ services:
       - mysql_auth_data:/var/lib/mysql
     networks:
       - hms-network
+    healthcheck:
+      test: ["CMD", "mysqladmin", "ping", "-h", "localhost", "-u", "root", "-pIsh983556"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
 
   mysql-hotel:
     image: mysql:8.0
@@ -29,6 +32,11 @@ services:
       - mysql_hotel_data:/var/lib/mysql
     networks:
       - hms-network
+    healthcheck:
+      test: ["CMD", "mysqladmin", "ping", "-h", "localhost", "-u", "root", "-pIsh983556"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
 
   mysql-booking:
     image: mysql:8.0
@@ -42,6 +50,11 @@ services:
       - mysql_booking_data:/var/lib/mysql
     networks:
       - hms-network
+    healthcheck:
+      test: ["CMD", "mysqladmin", "ping", "-h", "localhost", "-u", "root", "-pIsh983556"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
 
   mysql-billing:
     image: mysql:8.0
@@ -55,6 +68,11 @@ services:
       - mysql_billing_data:/var/lib/mysql
     networks:
       - hms-network
+    healthcheck:
+      test: ["CMD", "mysqladmin", "ping", "-h", "localhost", "-u", "root", "-pIsh983556"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
 
   mysql-notification:
     image: mysql:8.0
@@ -68,6 +86,11 @@ services:
       - mysql_notification_data:/var/lib/mysql
     networks:
       - hms-network
+    healthcheck:
+      test: ["CMD", "mysqladmin", "ping", "-h", "localhost", "-u", "root", "-pIsh983556"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
 
   # ---------------- REDIS ----------------
 
@@ -103,6 +126,8 @@ services:
       KAFKA_OFFSETS_TOPIC_REPLICATION_FACTOR: 1
     networks:
       - hms-network
+    depends_on:
+      - zookeeper
 
   # ---------------- SPRING CLOUD ----------------
 
@@ -123,6 +148,8 @@ services:
       SPRING_CLOUD_CONFIG_SERVER_GIT_URI: https://github.com/ishiiii10/Hotel_Management_System_ConfigServer
     networks:
       - hms-network
+    depends_on:
+      - eureka-service
 
   # ---------------- APPLICATION SERVICES ----------------
 
@@ -135,6 +162,13 @@ services:
       SPRING_PROFILES_ACTIVE: docker
     networks:
       - hms-network
+    depends_on:
+      mysql-auth:
+        condition: service_healthy
+      eureka-service:
+        condition: service_started
+      config-server:
+        condition: service_started
 
   hotel-service:
     build: ./hotel-service
@@ -145,6 +179,15 @@ services:
       SPRING_PROFILES_ACTIVE: docker
     networks:
       - hms-network
+    depends_on:
+      mysql-hotel:
+        condition: service_healthy
+      eureka-service:
+        condition: service_started
+      config-server:
+        condition: service_started
+      redis:
+        condition: service_started
 
   booking-service:
     build: ./booking-service
@@ -155,6 +198,17 @@ services:
       SPRING_PROFILES_ACTIVE: docker
     networks:
       - hms-network
+    depends_on:
+      mysql-booking:
+        condition: service_healthy
+      eureka-service:
+        condition: service_started
+      config-server:
+        condition: service_started
+      kafka:
+        condition: service_started
+      redis:
+        condition: service_started
 
   notification-service:
     build: ./notification-service
@@ -165,6 +219,15 @@ services:
       SPRING_PROFILES_ACTIVE: docker
     networks:
       - hms-network
+    depends_on:
+      mysql-notification:
+        condition: service_healthy
+      eureka-service:
+        condition: service_started
+      config-server:
+        condition: service_started
+      kafka:
+        condition: service_started
 
   billing-service:
     build: ./billing-service
@@ -175,6 +238,17 @@ services:
       SPRING_PROFILES_ACTIVE: docker
     networks:
       - hms-network
+    depends_on:
+      mysql-billing:
+        condition: service_healthy
+      eureka-service:
+        condition: service_started
+      config-server:
+        condition: service_started
+      kafka:
+        condition: service_started
+      redis:
+        condition: service_started
 
   reports-service:
     build: ./reports-service
@@ -185,6 +259,19 @@ services:
       SPRING_PROFILES_ACTIVE: docker
     networks:
       - hms-network
+    depends_on:
+      mysql-booking:
+        condition: service_healthy
+      mysql-billing:
+        condition: service_healthy
+      mysql-hotel:
+        condition: service_healthy
+      eureka-service:
+        condition: service_started
+      config-server:
+        condition: service_started
+      redis:
+        condition: service_started
 
   api-gateway:
     build: ./api-gateway
@@ -195,6 +282,11 @@ services:
       SPRING_PROFILES_ACTIVE: docker
     networks:
       - hms-network
+    depends_on:
+      eureka-service:
+        condition: service_started
+      config-server:
+        condition: service_started
 
 # ---------------- NETWORK & VOLUMES ----------------
 

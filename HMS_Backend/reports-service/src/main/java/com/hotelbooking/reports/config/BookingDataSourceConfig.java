@@ -48,6 +48,8 @@ public class BookingDataSourceConfig {
         Map<String, Object> jpaProps = new HashMap<>();
         jpaProps.put("hibernate.dialect", "org.hibernate.dialect.MySQLDialect");
         jpaProps.put("hibernate.hbm2ddl.auto", "none");
+        jpaProps.put("jakarta.persistence.jdbc.url", ((com.zaxxer.hikari.HikariDataSource) dataSource).getJdbcUrl());
+        em.setJpaPropertyMap(jpaProps);
         return em;
     }
 
